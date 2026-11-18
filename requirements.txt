@@ -1,0 +1,7 @@
+anthropic>=2.10
+opencv-python
+pillow
+numpy
+# Optional - lets it hear (microphone). On Windows: pip install pipwin && pipwin install pyaudio if pyaudio fails.
+SpeechRecognition
+pyaudio

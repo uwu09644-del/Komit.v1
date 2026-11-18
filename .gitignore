@@ -1,0 +1,5 @@
+# The living being - its memories stay on your computer, never in git
+generations/
+backups/
+__pycache__/
+*.pyc
