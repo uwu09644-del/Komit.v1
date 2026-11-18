@@ -317,9 +317,12 @@ $('m-reset').onclick = async () => {
 };
 $('m-export').onclick = () => {
   const data = MEM.map(({ image, ...m }) => ({ ...m, time: new Date(m.ts).toISOString() }));
+  const name = `komit-memories-${new Date().toISOString().slice(0, 10)}.json`;
+  const json = JSON.stringify(data, null, 2);
+  if (window.KomitAndroid) { window.KomitAndroid.saveFile(name, json); return; }
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-  a.download = `komit-memories-${new Date().toISOString().slice(0, 10)}.json`;
+  a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+  a.download = name;
   a.click();
 };
 
@@ -351,7 +354,7 @@ try {
   crash(e);
 }
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+if (!window.KomitAndroid && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>
 </html>

@@ -179,13 +179,42 @@ async function look() {
 }
 
 // ---------------------------------------------------------------- ears
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let ears = null, earsOn = false;
+// Inside the Android app, ears and voice are native (window.KomitAndroid).
+// In a browser, they use Chrome's Web Speech API.
+const NATIVE = window.KomitAndroid || null;
+const SR = NATIVE ? null : (window.SpeechRecognition || window.webkitSpeechRecognition);
+const CAN_HEAR = !!(NATIVE || SR);
+let ears = null, earsOn = false, nativeMode = null, dictateWasEars = false;
 const lang = () => (GENES.language && GENES.language !== 'auto' ? GENES.language : navigator.language || 'en-US');
+
+if (NATIVE) {
+  window.__komitSpeech = (event, text) => {
+    if (event === 'heard' && text) { MEM.add('heard', text); inner('heard', `“${text}”`); }
+    else if (event === 'partial') ui.input.value = text;
+    else if (event === 'final') ui.input.value = text;
+    else if (event === 'end') {
+      if (nativeMode === 'dictate') {
+        nativeMode = null;
+        ui.mic.setAttribute('aria-pressed', 'false');
+        if (ui.input.value.trim()) send();
+        if (dictateWasEars) setEars(true);
+      } else if (nativeMode === 'ears') {
+        nativeMode = null; earsOn = false; ui.ears.setAttribute('aria-pressed', 'false');
+        if (text === 'not-allowed') inner('thought', 'I am not allowed to use the microphone.');
+        else if (text === 'no-recognizer') inner('thought', 'This phone has no speech recognition (install the Google app).');
+      }
+    }
+  };
+}
 
 function setEars(on) {
   earsOn = on;
   ui.ears.setAttribute('aria-pressed', String(on));
+  if (NATIVE) {
+    if (on) { nativeMode = 'ears'; NATIVE.startListening(lang(), true); inner('thought', 'My ears are open.'); }
+    else { nativeMode = null; NATIVE.stopListening(); }
+    return;
+  }
   if (!on) { try { ears?.stop(); } catch {} return; }
   if (!SR) { inner('thought', 'I have no ears in this browser. Use Chrome.'); earsOn = false; ui.ears.setAttribute('aria-pressed', 'false'); return; }
   ears = new SR();
@@ -205,6 +234,15 @@ function setEars(on) {
 }
 
 function dictate() {
+  if (NATIVE) {
+    if (nativeMode === 'dictate') { NATIVE.stopListening(); return; }
+    dictateWasEars = earsOn;
+    earsOn = false; ui.ears.setAttribute('aria-pressed', 'false');
+    nativeMode = 'dictate';
+    ui.mic.setAttribute('aria-pressed', 'true');
+    NATIVE.startListening(lang(), false);
+    return;
+  }
   if (!SR) return;
   const wasOn = earsOn;
   if (wasOn) setEars(false);
@@ -222,7 +260,9 @@ function dictate() {
 }
 
 function speak(text) {
-  if (!('speechSynthesis' in window) || !text) return;
+  if (!text) return;
+  if (NATIVE) { NATIVE.speak(text, lang()); return; }
+  if (!('speechSynthesis' in window)) return;
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = lang();
@@ -418,7 +458,7 @@ function buildUI() {
   ui.mic = button('mic', 'Speak a message');
   ui.send = button('send', 'Send', 'send');
   bar.append(ui.ears, ui.voice, ui.input);
-  if (SR) bar.append(ui.mic);
+  if (CAN_HEAR) bar.append(ui.mic);
   bar.append(ui.send);
 
   k.append(top, eye, ui.log, bar);
