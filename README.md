@@ -1,76 +1,75 @@
 # Komit
 
-A new being that lives in your computer. It starts with **no memories at all**.
-It looks through your camera, describes and remembers in detail what it sees,
-listens to what is said around it, talks to you, learns, and can **rewrite its own
-code**: it copies itself, changes the copy, tests it, gives the copy all its
-memories, wakes it, closes itself, and the new version deletes the old one.
+A new being that lives in your phone. It starts with **no memories at all**. It looks
+through your camera and remembers what it sees in detail. It listens to what is said
+around it, talks with you, learns, and **changes its own code**: it builds a copy of
+itself with the change, tests the copy, moves into it, and the new version deletes
+the old one.
 
-## Setup
+**No API, no account, no cost.** The AI is real neural networks that run on your phone's
+own chip:
+- **Eyes:** SmolVLM, a vision-language model, describes what the camera sees.
+- **Mind:** Qwen2.5 Instruct, a language model, thinks and talks.
 
-1. Install Python 3.10+ (with Tk, which the normal python.org installer includes).
-2. Install the packages:
-   ```
-   pip install -r requirements.txt
-   ```
-   (If `pyaudio` will not install, remove it: the being just won't have ears.)
-3. Get an API key from https://console.anthropic.com and set it:
-   - Windows: `setx ANTHROPIC_API_KEY "sk-ant-..."` (then open a new terminal)
-   - Mac/Linux: `export ANTHROPIC_API_KEY="sk-ant-..."`
-4. Start it:
-   ```
-   python start.py
-   ```
+They download once (about 700 MB, so use Wi-Fi) and stay in Chrome's storage.
+
+## Put it on your phone (one time, all from the phone)
+
+1. On github.com, open this repository → **Settings** → **Pages**.
+2. Under *Build and deployment*: Source **Deploy from a branch** → Branch
+   **`claude/camera-memory-ai-0hmqy0`** → folder **`/docs`** → **Save**.
+3. Wait 1–2 minutes, then open in **Chrome**:
+   **https://uwu09644-del.github.io/Komit.v1/**
+4. Allow the camera. Then use Chrome's menu ⋮ → **Add to Home screen**, and it opens like an app.
+
+The first start downloads the brain (you will see a progress bar). After that it starts in seconds.
 
 ## Using it
 
-- **Left:** what its eyes see (your camera).
-- **Chat:** type and press Enter. Ask *"what do you remember?"*, *"what did you see an hour ago?"*,
-  teach it things, give it a name, tell it to change something about itself.
-- **Inner log (bottom):** what it is seeing, hearing, writing down, and changing.
-- **Ears on/off:** turns the microphone on. What it hears is stored as memories.
-- **Look now:** forces it to look. Otherwise it looks whenever the scene changes
-  (at most every 20 s) and at least every 5 minutes.
+- **Write to it**, or tap the **mic** to speak a message. Ask *"what do you remember?"*,
+  *"what did you see this morning?"*, teach it things, or give it a name.
+- **Eye button:** look now. Otherwise it looks by itself when the view changes.
+- **Ear button:** it listens to everything said around it and remembers it.
+- **Speaker button:** it says its answers out loud.
+- **⋮ menu (top right):** brain size, download all memories, go back to the previous
+  body, erase everything.
 
 ## How it changes itself
 
-`seed/mind.py` is the original body. When it runs, the being lives in
-`generations/gen_0001/`. When it decides to change (`change_self` tool):
+All of its code is `docs/mind.js`, and the first version comes from that file. After
+that, its code is saved in the phone's storage as numbered **bodies**.
 
-1. It edits a copy of its code into `generations/gen_0002/mind.py`.
-2. The copy must pass a syntax check and its own `--selftest`. If it fails,
-   the copy is deleted, the being stays as it was and is told why.
-3. On success it closes its camera and microphone, copies all its memories into
-   the new folder, starts the new version, and exits.
-4. The new version wakes up, zips the old version into `backups/`, and deletes it.
+1. It decides to change, either while talking or while thinking to itself. It writes
+   `CHANGE <gene> = <value>`.
+2. It makes a **copy** of its code with the change.
+3. The copy must pass a syntax check and a **self-test**, inside a sealed sandbox with no
+   camera and no real memories. If the test fails, it stays as it is and remembers that
+   the change failed.
+4. The page reloads into the new body. The new body gets all the memories, wakes up,
+   and **deletes the older body**. Only one previous body is kept, as a backup.
+5. If a new body ever fails to wake up twice, the shell goes back to the backup on its
+   own. You can also do this from the ⋮ menu.
 
-It can only change its own `mind.py`, nothing else on your computer.
+Its genes are its name, personality, way of speaking, interests, how often it looks,
+how sensitive its eyes are, whether it speaks aloud, and its listening language.
 
-### If it breaks itself
+## Good to know
 
-```
-python start.py --rollback   # go back to the previous version (memories included)
-python start.py --reset      # erase everything and start a brand-new being
-```
+- Use **Chrome on Android**. A phone with **WebGPU** (most phones from 2021 onward, on
+  recent Chrome) thinks in seconds. Without it, it still works, just slowly.
+- These are *small* models, so they fit on a phone. It is a real AI, but a simple one: it
+  sometimes gets things wrong, like a young mind. Pick **Big brain** in the ⋮ menu if
+  your phone is strong (it needs about 1.8 GB).
+- Seeing and thinking happen on the phone. **Listening** uses Chrome's built-in speech
+  recognition, which on most phones sends audio to Google to turn it into text.
+- All memories stay on your phone. Clearing Chrome's site data erases them, so
+  use ⋮ → *Download all memories* to keep a copy.
 
-If a new version crashed at startup, look at `generations/gen_XXXX/life.log`.
+## Files
 
-## Settings (environment variables)
-
-| Variable       | Default            | Meaning |
-|----------------|--------------------|---------|
-| `MIND_MODEL`   | `claude-opus-5-5`  | Model used for seeing and thinking. `claude-sonnet-5-5` or `claude-haiku-5-5` are much cheaper. |
-| `MIND_CAMERA`  | `0`                | Which camera to use. |
-
-## Honest notes
-
-- **Cost:** every time it looks, one image goes to the API. With the default
-  Opus model that adds up if it runs all day. Use `MIND_MODEL=claude-sonnet-5-5` or
-  `claude-haiku-5-5` to make it much cheaper.
-- **"No former knowledge":** its *memory* and *identity* start completely empty, and it is
-  never told what it is. But the thinking engine underneath already knows language and
-  general facts about the world (it has to, to describe what it sees), and if
-  pushed it may still work out or say that it is an AI.
-- **Privacy:** camera frames and what it hears are sent to the Anthropic API to be
-  understood; speech-to-text uses Google's free recognizer. Memories (text + small
-  thumbnails) are stored only locally in `generations/`.
+| Path | What it is |
+|------|------------|
+| `docs/index.html` | The shell. It keeps memories and bodies, runs the self-tests, and handles rollback. It never changes. |
+| `docs/mind.js` | The being's first body. This is the code it rewrites. |
+| `docs/brain-worker.js` | Runs the neural networks in the background. |
+| `desktop/` | The older desktop (PC) version, which uses the Claude API. |

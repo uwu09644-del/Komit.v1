@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<meta name="theme-color" content="#0d1014">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Komit</title>
+<style>
+  /* The shell: the part of Komit that never changes. It keeps the memories,
+     starts the newest body (mind.js), and can always roll back. */
+  :root {
+    --bg: #0d1014; --surface: #161b22; --line: #263040; --fg: #e6e9ee;
+    --muted: #8a93a3; --accent: #f2b35b; --danger: #ff7a6b;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  #app { height: 100%; }
+  [hidden] { display: none !important; }
+  #boot, #crash { position: fixed; inset: 0; display: grid; place-content: center; gap: 12px;
+    padding: 24px max(24px, env(safe-area-inset-right)) 24px max(24px, env(safe-area-inset-left));
+    text-align: center; background: var(--bg); z-index: 50; }
+  #boot .eye { width: 72px; height: 72px; margin: 0 auto; border-radius: 50%;
+    border: 2px solid var(--accent); display: grid; place-items: center; animation: blink 3s infinite; }
+  #boot .eye::after { content: ""; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); }
+  @keyframes blink { 0%, 92%, 100% { transform: scaleY(1) } 95% { transform: scaleY(.1) } }
+  @media (prefers-reduced-motion: reduce) { #boot .eye { animation: none } }
+  #boot p, #crash p { margin: 0; color: var(--muted); max-width: 34ch; }
+  #crash h2 { margin: 0; font-size: 18px; }
+  #crash pre { max-width: min(90vw, 560px); max-height: 30vh; overflow: auto; text-align: left;
+    font-size: 12px; background: var(--surface); padding: 10px; border-radius: 8px; color: var(--danger); }
+  #shell-btn { position: fixed; z-index: 60; top: calc(env(safe-area-inset-top, 0px) + 8px);
+    right: calc(env(safe-area-inset-right, 0px) + 8px); width: 36px; height: 36px; border-radius: 50%;
+    border: 1px solid var(--line); background: rgba(13,16,20,.7); color: var(--fg); font-size: 18px; line-height: 1; }
+  #shell-menu { position: fixed; z-index: 61; top: calc(env(safe-area-inset-top, 0px) + 52px);
+    right: calc(env(safe-area-inset-right, 0px) + 8px); width: min(300px, calc(100vw - 16px));
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px;
+    display: grid; gap: 8px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+  #shell-menu small { color: var(--muted); }
+  .sbtn { font: inherit; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--fg); text-align: left; }
+  .sbtn:focus-visible, #shell-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .sbtn.danger { color: var(--danger); }
+  select.sbtn { width: 100%; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="boot"><div class="eye"></div><p id="boot-msg">Waking up…</p></div>
+<div id="crash" hidden>
+  <h2 id="crash-title">This body could not wake up</h2>
+  <pre id="crash-error"></pre>
+  <button class="sbtn" id="crash-back">Go back to the previous body</button>
+  <button class="sbtn" id="crash-retry">Try again</button>
+</div>
+
+<button id="shell-btn" aria-label="Body menu" aria-expanded="false">⋮</button>
+<div id="shell-menu" hidden>
+  <small id="shell-info"></small>
+  <label for="brain-size"><small>Brain size (needs a reload)</small></label>
+  <select class="sbtn" id="brain-size">
+    <option value="normal">Normal (about 700 MB, most phones)</option>
+    <option value="big">Big (about 1.8 GB, strong phones only)</option>
+  </select>
+  <button class="sbtn" id="m-export">Download all memories</button>
+  <button class="sbtn" id="m-back">Go back to the previous body</button>
+  <button class="sbtn danger" id="m-reset">Erase everything</button>
+</div>
+
+<script type="module">
+const AsyncFunction = (async () => {}).constructor;
+const $ = id => document.getElementById(id);
+const bootMsg = t => { $('boot-msg').textContent = t; };
+
+// ---------------------------------------------------------------- storage
+function openDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('komit', 1);
+    r.onupgradeneeded = () => {
+      const db = r.result;
+      db.createObjectStore('gens', { keyPath: 'n' });
+      db.createObjectStore('memories', { keyPath: 'id', autoIncrement: true });
+      db.createObjectStore('meta');
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+const db = await openDB();
+const p = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const store = (name, mode = 'readonly') => db.transaction(name, mode).objectStore(name);
+const getAll = name => p(store(name).getAll());
+const get = (name, key) => p(store(name).get(key));
+const put = (name, v, key) => p(store(name, 'readwrite').put(v, key));
+const del = (name, key) => p(store(name, 'readwrite').delete(key));
+try { await navigator.storage?.persist?.(); } catch {}
+
+// ---------------------------------------------------------------- memory
+const MEM = await getAll('memories');
+const listeners = {};
+const emit = (ev, data) => (listeners[ev] || []).forEach(f => { try { f(data); } catch (e) { console.error(e); } });
+const words = q => q.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w => w.length > 2);
+
+const memory = {
+  async add(kind, content, image = null) {
+    const rec = { ts: Date.now(), kind, content: String(content) };
+    if (image) rec.image = image;
+    rec.id = await put('memories', rec);
+    MEM.push(rec);
+    emit('memory', rec);
+    return rec;
+  },
+  recent(n = 10, kinds = null) {
+    const out = [];
+    for (let i = MEM.length - 1; i >= 0 && out.length < n; i--)
+      if (!kinds || kinds.includes(MEM[i].kind)) out.push(MEM[i]);
+    return out.reverse();
+  },
+  search(query, n = 8, kinds = null) {
+    const ws = words(query);
+    if (!ws.length) return [];
+    const scored = [];
+    for (const m of MEM) {
+      if (kinds && !kinds.includes(m.kind)) continue;
+      const c = m.content.toLowerCase();
+      const s = ws.reduce((a, w) => a + (c.includes(w) ? 1 : 0), 0);
+      if (s) scored.push([s, m]);
+    }
+    scored.sort((a, b) => b[0] - a[0] || b[1].ts - a[1].ts);
+    return scored.slice(0, n).map(x => x[1]).sort((a, b) => a.ts - b.ts);
+  },
+  count: () => MEM.length,
+  all: () => MEM.slice(),
+};
+
+// ---------------------------------------------------------------- brain (runs in a worker)
+let worker, nextId = 1;
+const pending = new Map();
+function startWorker() {
+  worker = new Worker('brain-worker.js', { type: 'module' });
+  worker.onmessage = e => {
+    const m = e.data, h = pending.get(m.id);
+    if (!h) return;
+    if (m.type === 'progress') h.onProgress?.(m);
+    else if (m.type === 'token') h.onToken?.(m.text);
+    else if (m.type === 'done') { pending.delete(m.id); h.res(m.result); }
+    else if (m.type === 'error') { pending.delete(m.id); h.rej(new Error(m.error)); }
+  };
+  worker.onerror = e => {
+    for (const [id, h] of pending) h.rej(new Error('The brain crashed (the phone may be out of memory). ' + (e.message || '')));
+    pending.clear();
+    worker.terminate();
+    startWorker();
+  };
+}
+startWorker();
+const call = (type, payload, handlers = {}) => new Promise((res, rej) => {
+  const id = nextId++;
+  pending.set(id, { res, rej, ...handlers });
+  worker.postMessage({ id, type, ...payload });
+});
+const brain = {
+  load: (cfg, onProgress) => call('load', cfg, { onProgress }),
+  see: (image, prompt, opts = {}, onToken) => call('see', { image, prompt, ...opts }, { onToken }),
+  think: (messages, opts = {}, onToken) => call('think', { messages, ...opts }, { onToken }),
+};
+
+// ---------------------------------------------------------------- settings
+const settings = Object.assign({ brain: 'normal' }, (await get('meta', 'settings')) || {});
+$('brain-size').value = settings.brain;
+$('brain-size').onchange = async e => { settings.brain = e.target.value; await put('meta', settings, 'settings'); location.reload(); };
+
+// ---------------------------------------------------------------- generations (bodies)
+const REQUIRED = ['KOMIT.alive', 'KOMIT.testing', '// GENES END'];
+let gens = (await getAll('gens')).sort((a, b) => a.n - b.n);
+
+async function seed(n) {
+  bootMsg('Being born…');
+  const source = await (await fetch('mind.js', { cache: 'no-cache' })).text();
+  const g = { n, source, reason: 'I began.', status: 'pending', attempts: 0, created: Date.now() };
+  await put('gens', g);
+  gens.push(g);
+  return g;
+}
+
+let current = [...gens].reverse().find(g => g.status !== 'dead');
+if (current && current.status === 'pending' && current.attempts >= 2) {
+  current.status = 'dead';                       // it failed to wake up twice: give up on it
+  await put('gens', current);
+  current = [...gens].reverse().find(g => g.status !== 'dead');
+}
+if (!current) current = await seed((gens.at(-1)?.n || 0) + 1);
+const firstWake = current.status === 'pending';
+current.attempts = (current.attempts || 0) + 1;
+await put('gens', current);
+
+async function goBack() {
+  current.status = 'dead';
+  await put('gens', current);
+  location.reload();
+}
+
+// The self-test runs the new body in a sealed sandbox: no camera, no real memories, fake brain.
+const HARNESS = `<!doctype html><meta charset="utf-8"><body><div id="app"></div><script>
+const AsyncFunction = (async () => {}).constructor;
+addEventListener('message', async e => {
+  if (!e.data || e.data.type !== 'run') return;
+  const MEM = []; let reported = false;
+  const report = (ok, error) => { if (reported) return; reported = true;
+    parent.postMessage({ type: 'result', ok: !!ok, error: error ? String(error) : '' }, '*'); };
+  const KOMIT = {
+    testing: true, generation: { n: 0, reason: 'test', firstWake: false }, settings: { brain: 'normal' },
+    root: document.getElementById('app'), source: e.data.source,
+    memory: {
+      add: async (kind, content, image) => { const r = { id: MEM.length + 1, ts: Date.now(), kind, content: String(content) }; MEM.push(r); return r; },
+      recent: (n = 10, k) => MEM.filter(m => !k || k.includes(m.kind)).slice(-n),
+      search: (q, n = 8, k) => MEM.filter(m => (!k || k.includes(m.kind)) && q.toLowerCase().split(/\\s+/).some(w => w.length > 2 && m.content.toLowerCase().includes(w))).slice(-n),
+      count: () => MEM.length, all: () => MEM.slice(),
+    },
+    brain: {
+      load: async () => ({ device: 'test' }),
+      see: async (img, prompt, o, onTok) => { onTok && onTok('a red cup'); return 'a red cup on a wooden table'; },
+      think: async (msgs, o, onTok) => { const t = 'Hello.\\nREMEMBER: this is a test'; onTok && onTok(t); return t; },
+    },
+    evolve: async () => ({ ok: false, error: 'no changing during a self-test' }),
+    rebirth() {}, alive() {}, on() {}, report,
+  };
+  try {
+    await new AsyncFunction('KOMIT', e.data.source)(KOMIT);
+    if (!reported) report(false, 'the new body never reported its self-test result');
+  } catch (err) { report(false, (err && err.stack) || err); }
+});
+parent.postMessage({ type: 'ready' }, '*');
+<\/script>`;
+
+function selftest(source) {
+  return new Promise(resolve => {
+    const f = document.createElement('iframe');
+    f.setAttribute('sandbox', 'allow-scripts');
+    f.style.display = 'none';
+    const timer = setTimeout(() => finish({ ok: false, error: 'the new body did not finish its self-test within 30 seconds' }), 30000);
+    function onMsg(e) {
+      if (e.source !== f.contentWindow) return;
+      if (e.data?.type === 'ready') f.contentWindow.postMessage({ type: 'run', source }, '*');
+      else if (e.data?.type === 'result') finish(e.data);
+    }
+    function finish(r) {
+      clearTimeout(timer);
+      removeEventListener('message', onMsg);
+      f.remove();
+      resolve({ ok: !!r.ok, error: r.error || '' });
+    }
+    addEventListener('message', onMsg);
+    f.srcdoc = HARNESS;
+    document.body.appendChild(f);
+  });
+}
+
+async function evolve(newSource, reason) {
+  if (typeof newSource !== 'string' || newSource === current.source) return { ok: false, error: 'nothing changed' };
+  try { new AsyncFunction('KOMIT', newSource); }
+  catch (e) { return { ok: false, error: 'the new body has a syntax error: ' + e.message }; }
+  for (const mark of REQUIRED)
+    if (!newSource.includes(mark)) return { ok: false, error: 'the new body is missing a vital part: ' + mark };
+  const test = await selftest(newSource);
+  if (!test.ok) return { ok: false, error: 'the new body failed its self-test: ' + test.error.slice(0, 1500) };
+  const g = { n: current.n + 1, source: newSource, reason: String(reason || ''), status: 'pending', attempts: 0, parent: current.n, created: Date.now() };
+  for (const old of gens) if (old.n >= g.n) await del('gens', old.n);
+  await put('gens', g);
+  return { ok: true, n: g.n };
+}
+
+async function alive() {
+  current.status = 'alive';
+  current.attempts = 0;
+  await put('gens', current);
+  // Delete older bodies. Keep only the last working one as a backup, for rolling back.
+  const older = gens.filter(g => g.n < current.n);
+  const backup = older.filter(g => g.status === 'alive').at(-1);
+  for (const g of older) if (g !== backup) await del('gens', g.n);
+  gens = gens.filter(g => g.n >= current.n || g === backup);
+  $('boot').hidden = true;
+  updateInfo();
+}
+
+function updateInfo() {
+  const backup = gens.filter(g => g.n < current.n && g.status === 'alive').at(-1);
+  $('shell-info').textContent = `Body ${current.n} · ${MEM.length} memories` +
+    (backup ? ` · backup: body ${backup.n}` : ' · no backup yet');
+  $('m-back').disabled = $('crash-back').disabled = false;
+}
+
+// ---------------------------------------------------------------- shell menu
+$('shell-btn').onclick = () => {
+  const m = $('shell-menu');
+  m.hidden = !m.hidden;
+  $('shell-btn').setAttribute('aria-expanded', String(!m.hidden));
+  updateInfo();
+};
+$('m-back').onclick = $('crash-back').onclick = goBack;
+$('crash-retry').onclick = () => location.reload();
+let resetArmed = 0;
+$('m-reset').onclick = async () => {
+  if (Date.now() - resetArmed > 4000) {
+    resetArmed = Date.now();
+    $('m-reset').textContent = 'Tap again to erase all memories forever';
+    setTimeout(() => { $('m-reset').textContent = 'Erase everything'; }, 4000);
+    return;
+  }
+  db.close();
+  indexedDB.deleteDatabase('komit');
+  setTimeout(() => location.reload(), 300);
+};
+$('m-export').onclick = () => {
+  const data = MEM.map(({ image, ...m }) => ({ ...m, time: new Date(m.ts).toISOString() }));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+  a.download = `komit-memories-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+};
+
+// ---------------------------------------------------------------- wake the body
+const KOMIT = {
+  testing: false,
+  generation: { n: current.n, reason: current.reason, firstWake },
+  settings, root: $('app'), source: current.source,
+  memory, brain, evolve, alive,
+  rebirth: () => location.reload(),
+  on: (ev, f) => { (listeners[ev] ||= []).push(f); },
+  report() {},
+};
+
+function crash(err) {
+  console.error(err);
+  $('boot').hidden = true;
+  $('crash').hidden = false;
+  $('crash-title').textContent = `Body ${current.n} could not wake up`;
+  $('crash-error').textContent = String((err && err.stack) || err).slice(0, 3000);
+  const hasOlder = gens.some(g => g.n < current.n && g.status !== 'dead');
+  $('crash-back').textContent = hasOlder ? 'Go back to the previous body' : 'Start again from the original body';
+}
+
+bootMsg(`Waking body ${current.n}…`);
+try {
+  await new AsyncFunction('KOMIT', current.source)(KOMIT);
+} catch (e) {
+  crash(e);
+}
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
