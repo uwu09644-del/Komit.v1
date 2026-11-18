@@ -13,7 +13,21 @@ own chip:
 
 They download once (about 700 MB, so use Wi-Fi) and stay in Chrome's storage.
 
-## Put it on your phone (one time, all from the phone)
+## Install the app (APK)
+
+1. On your phone, open **https://github.com/uwu09644-del/Komit.v1/releases/tag/komit-latest**
+2. Tap **Komit.apk** to download it, then open it. Android will ask you to allow installing
+   apps from your browser: allow it, then tap **Install**.
+3. Open **Komit** and allow the camera and microphone.
+
+A new APK is built by GitHub automatically every time the code changes (see
+`.github/workflows/android.yml`). Every APK is signed with the same key, so a new
+one installs over the old one and **keeps all memories**.
+
+In the app, listening and speaking use Android's own speech services, and everything
+else is the same as the website version below.
+
+## Or use it as a website (one time, all from the phone)
 
 1. On github.com, open this repository → **Settings** → **Pages**.
 2. Under *Build and deployment*: Source **Deploy from a branch** → Branch
@@ -72,4 +86,5 @@ how sensitive its eyes are, whether it speaks aloud, and its listening language.
 | `docs/index.html` | The shell. It keeps memories and bodies, runs the self-tests, and handles rollback. It never changes. |
 | `docs/mind.js` | The being's first body. This is the code it rewrites. |
 | `docs/brain-worker.js` | Runs the neural networks in the background. |
+| `android/` | The Android app: it wraps `docs/` and adds the camera permission, native listening, speaking and saving. |
 | `desktop/` | The older desktop (PC) version, which uses the Claude API. |
