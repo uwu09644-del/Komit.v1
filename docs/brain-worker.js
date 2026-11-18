@@ -6,6 +6,10 @@ import {
 } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1';
 
 env.allowLocalModels = false;
+// Use several CPU cores when the page is cross-origin isolated (the app and the
+// website both arrange this). Without it, the CPU brain runs on one core only.
+const THREADS = self.crossOriginIsolated ? Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 4) - 1)) : 1;
+if (env.backends?.onnx?.wasm) env.backends.onnx.wasm.numThreads = THREADS;
 
 let gpu = null;               // null = not checked yet, false = none, {f16} = available
 let chat = null, vproc = null, vmodel = null;
@@ -74,7 +78,7 @@ async function load(id, { text, vision }) {
     loaded.text = text;
     loaded.device = r.used.device;
   }
-  return { device: loaded.device };
+  return { device: loaded.device, threads: THREADS, isolated: !!self.crossOriginIsolated };
 }
 
 function streamerFor(id, tokenizer) {

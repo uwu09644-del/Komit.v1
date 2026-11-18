@@ -51,26 +51,37 @@ The first start downloads the brain (you will see a progress bar). After that it
 ## How it changes itself
 
 All of its code is `docs/mind.js`, and the first version comes from that file. After
-that, its code is saved in the phone's storage as numbered **bodies**.
+that, its code is saved in the phone's storage as numbered **bodies**. It changes in
+three ways:
 
-1. It decides to change, either while talking or while thinking to itself. It writes
-   `CHANGE <gene> = <value>`.
-2. It makes a **copy** of its code with the change.
-3. The copy must pass a syntax check and a **self-test**, inside a sealed sandbox with no
-   camera and no real memories. If the test fails, it stays as it is and remembers that
-   the change failed.
-4. The page reloads into the new body. The new body gets all the memories, wakes up,
-   and **deletes the older body**. Only one previous body is kept, as a backup.
-5. If a new body ever fails to wake up twice, the shell goes back to the backup on its
-   own. You can also do this from the ⋮ menu.
+- **It tunes itself.** It measures how long it takes to look and to answer. If this phone
+  is slow, it looks less often and speaks more briefly so it stays quick. If the phone is
+  fast, it does more.
+- **It grows abilities.** It picks a new ability, and the ability's real code is copied
+  into its body. The abilities are colour sense, light sense, motion sense, night vision,
+  time sense, dreaming (turning experiences into lasting memories), curiosity (asking you
+  about what it sees), welcoming, and attentive ears. The chips on the camera view show
+  what it has grown.
+- **It becomes someone.** It chooses its name and notices its own character and interests
+  from its memories. You can also just tell it ("I'll call you Nova", "look more often").
 
-Its genes are its name, personality, way of speaking, interests, how often it looks,
-how sensitive its eyes are, whether it speaks aloud, and its listening language.
+It tries to grow on its own every few minutes when nobody is chatting, or right away if
+you tap the **sprout** button. Each change works the same way:
+
+1. It builds a **copy** of its code with the change.
+2. The copy must pass a **self-test** in a sealed sandbox. If it fails, the being stays as
+   it is and remembers that the change failed.
+3. The page reloads into the new body with all the memories, and the new body **deletes
+   the older one**. One previous body is kept as a backup.
+
+**Upgrades from outside:** when a newer app or website comes out, the being moves into a
+new body built from the new code. It keeps its genes, its grown abilities, and all its memories.
 
 ## Good to know
 
-- Use **Chrome on Android**. A phone with **WebGPU** (most phones from 2021 onward, on
-  recent Chrome) thinks in seconds. Without it, it still works, just slowly.
+- Use **Chrome on Android**, or the APK. A phone with **WebGPU** thinks in seconds. Without
+  it, the AI runs on the processor using several cores. That is slower, so the being
+  tunes itself to look less often.
 - These are *small* models, so they fit on a phone. It is a real AI, but a simple one: it
   sometimes gets things wrong, like a young mind. Pick **Big brain** in the ⋮ menu if
   your phone is strong (it needs about 1.8 GB).

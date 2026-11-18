@@ -36,6 +36,8 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Locale;
 
@@ -86,7 +88,16 @@ public class MainActivity extends Activity {
         web.setWebViewClient(new WebViewClient() {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                return loader.shouldInterceptRequest(request.getUrl());
+                WebResourceResponse r = loader.shouldInterceptRequest(request.getUrl());
+                if (r != null) {
+                    // Cross-origin isolation: lets the AI use several CPU cores (much less lag).
+                    Map<String, String> h = new HashMap<>();
+                    if (r.getResponseHeaders() != null) h.putAll(r.getResponseHeaders());
+                    h.put("Cross-Origin-Opener-Policy", "same-origin");
+                    h.put("Cross-Origin-Embedder-Policy", "credentialless");
+                    r.setResponseHeaders(h);
+                }
+                return r;
             }
 
             @Override
