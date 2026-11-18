@@ -48,7 +48,7 @@ import java.util.Locale;
  * voice (TextToSpeech) and saving files, exposed to the page as window.KomitAndroid.
  */
 public class MainActivity extends Activity {
-    private static final String START_URL = "https://appassets.androidplatform.net/assets/index.html";
+    private static final String START_URL = "https://appassets.androidplatform.net/assets/world/index.html";
     private static final int REQ_PERMS = 1;
 
     private WebView web;

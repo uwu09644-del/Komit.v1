@@ -3,8 +3,8 @@
 // cannot send these headers itself, so this worker adds them).
 // Own files: network first (so updates arrive), cache as fallback.
 // The AI library from the CDN: cache first. (The models cache themselves.)
-const CACHE = 'komit-v2';
-const OWN = ['./', 'index.html', 'mind.js', 'brain-worker.js', 'manifest.json', 'icon-192.png', 'icon-512.png'];
+const CACHE = 'komit-v3';
+const OWN = ['./', 'index.html', 'mind.js', 'brain-worker.js', 'manifest.json', 'icon-192.png', 'icon-512.png', 'world/', 'world/index.html', 'world/world.js', 'world/hero.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(OWN)).then(() => self.skipWaiting()));

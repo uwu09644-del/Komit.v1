@@ -1,101 +1,74 @@
 # Komit
 
-A new being that lives in your phone. It starts with **no memories at all**. It looks
-through your camera and remembers what it sees in detail. It listens to what is said
-around it, talks with you, learns, and **changes its own code**: it builds a copy of
-itself with the change, tests the copy, moves into it, and the new version deletes
-the old one.
+## Komit World
 
-**No API, no account, no cost.** The AI is real neural networks that run on your phone's
-own chip:
-- **Eyes:** SmolVLM, a vision-language model, describes what the camera sees.
-- **Mind:** Qwen2.5 Instruct, a language model, thinks and talks.
+A living fantasy world on your phone, with towns, wild lands, rifts that spill monsters,
+and the people who live there. One young hunter hears a voice nobody else can hear:
+**you, the System.**
 
-They download once (about 700 MB, so use Wi-Fi) and stay in Chrome's storage.
+- **The people live for themselves.** Every person has their own needs (food, sleep, company),
+  personality, memories and relationships. They work, talk, make friends and enemies,
+  fall in love, have children who grow up, take up arms, steal, fight, sometimes kill,
+  become outlaws, take revenge, grieve, grow old and die. Nobody scripts it.
+- **The world is dangerous.** Rifts tear open and spawn monsters. Hunters close them.
+  If they don't, the rift breaks and monsters march on a town, and people bar their doors.
+- **The hero is the one who changes himself.** He runs on the stronger mind, Qwen2.5 1.5B,
+  on the phone itself. He rewrites his own code: he grows new skills, tunes his courage
+  and caution from what life did to him, and finds his own character and dream. Each change
+  builds a new body that is tested in a sealed sandbox. Then he moves into it while the world
+  keeps running, and his old body is deleted (one is kept as a backup).
+- **He doesn't know.** To him, this world is the only world. The System is a mysterious voice,
+  and his evolutions feel like growing.
+- **Only you and he share the System.** From the System tab you can:
+  - send him **messages** and **questions** (he answers from his own memories)
+  - give him **quests** (defeat monsters, close a rift, reach a level, protect a town, find a
+    partner, defeat someone you tapped, or your own words) with rewards
+  - send **gifts**: gold, experience, stat points, potions, gear, healing, or an **evolution**
+- **Tap anyone** to see their life (family, feelings, memories) and **read their thoughts**.
 
-## Install the app (APK)
+Tabs: **System** (you and him), **Status** (his status window, skills, who he is),
+**Quests**, **World** (population, towns, rifts, strongest hunters, outlaws) and
+**Chronicle** (the history of the world: births, deaths, love, murders, rift breaks).
+Time runs at 1×, 3× or 10×. A day is 90 seconds at 1×, and a year is 8 days.
 
-1. On your phone, open **https://github.com/uwu09644-del/Komit.v1/releases/tag/komit-latest**
-2. Tap **Komit.apk** to download it, then open it. Android will ask you to allow installing
-   apps from your browser: allow it, then tap **Install**.
-3. Open **Komit** and allow the camera and microphone.
+### Install
 
-A new APK is built by GitHub automatically every time the code changes (see
-`.github/workflows/android.yml`). Every APK is signed with the same key, so a new
-one installs over the old one and **keeps all memories**.
+**APK (Android):** open **https://github.com/uwu09644-del/Komit.v1/releases/tag/komit-latest**
+on your phone, download **Komit.apk** and install it. A new APK installs over the old one and
+keeps the world.
 
-In the app, listening and speaking use Android's own speech services, and everything
-else is the same as the website version below.
+**Website:** in this repo on GitHub, open Settings → Pages → *Deploy from a branch* →
+branch `claude/camera-memory-ai-0hmqy0`, folder `/docs`. Then open
+`https://uwu09644-del.github.io/Komit.v1/world/` in Chrome.
 
-## Or use it as a website (one time, all from the phone)
+The first start downloads the hero's mind (about 1.1 GB for the strong mind), so use Wi-Fi.
+If the phone can't fit it, it automatically uses the light mind (0.5B). You can also choose
+in the ⋮ menu.
 
-1. On github.com, open this repository → **Settings** → **Pages**.
-2. Under *Build and deployment*: Source **Deploy from a branch** → Branch
-   **`claude/camera-memory-ai-0hmqy0`** → folder **`/docs`** → **Save**.
-3. Wait 1–2 minutes, then open in **Chrome**:
-   **https://uwu09644-del.github.io/Komit.v1/**
-4. Allow the camera. Then use Chrome's menu ⋮ → **Add to Home screen**, and it opens like an app.
+### Honest notes
 
-The first start downloads the brain (you will see a progress bar). After that it starts in seconds.
+- **How the people think.** A phone can't run a language model for every person at once.
+  Each person decides moment to moment with a fast "needs and personality" brain, and the
+  language model gives them a voice when you read their thoughts or the hero talks with them.
+  The hero thinks with the language model all the time.
+- **What he can grow.** He grows skills from a set of real code abilities, and tunes his genes.
+  A phone-sized model is too small to safely write brand-new code from scratch.
+- **Where things live.** Everything stays on your phone. "End this world" in the ⋮ menu
+  starts over.
 
-## Using it
+## The camera being (the first Komit)
 
-- **Write to it**, or tap the **mic** to speak a message. Ask *"what do you remember?"*,
-  *"what did you see this morning?"*, teach it things, or give it a name.
-- **Eye button:** look now. Otherwise it looks by itself when the view changes.
-- **Ear button:** it listens to everything said around it and remembers it.
-- **Speaker button:** it says its answers out loud.
-- **⋮ menu (top right):** brain size, download all memories, go back to the previous
-  body, erase everything.
-
-## How it changes itself
-
-All of its code is `docs/mind.js`, and the first version comes from that file. After
-that, its code is saved in the phone's storage as numbered **bodies**. It changes in
-three ways:
-
-- **It tunes itself.** It measures how long it takes to look and to answer. If this phone
-  is slow, it looks less often and speaks more briefly so it stays quick. If the phone is
-  fast, it does more.
-- **It grows abilities.** It picks a new ability, and the ability's real code is copied
-  into its body. The abilities are colour sense, light sense, motion sense, night vision,
-  time sense, dreaming (turning experiences into lasting memories), curiosity (asking you
-  about what it sees), welcoming, and attentive ears. The chips on the camera view show
-  what it has grown.
-- **It becomes someone.** It chooses its name and notices its own character and interests
-  from its memories. You can also just tell it ("I'll call you Nova", "look more often").
-
-It tries to grow on its own every few minutes when nobody is chatting, or right away if
-you tap the **sprout** button. Each change works the same way:
-
-1. It builds a **copy** of its code with the change.
-2. The copy must pass a **self-test** in a sealed sandbox. If it fails, the being stays as
-   it is and remembers that the change failed.
-3. The page reloads into the new body with all the memories, and the new body **deletes
-   the older one**. One previous body is kept as a backup.
-
-**Upgrades from outside:** when a newer app or website comes out, the being moves into a
-new body built from the new code. It keeps its genes, its grown abilities, and all its memories.
-
-## Good to know
-
-- Use **Chrome on Android**, or the APK. A phone with **WebGPU** thinks in seconds. Without
-  it, the AI runs on the processor using several cores. That is slower, so the being
-  tunes itself to look less often.
-- These are *small* models, so they fit on a phone. It is a real AI, but a simple one: it
-  sometimes gets things wrong, like a young mind. Pick **Big brain** in the ⋮ menu if
-  your phone is strong (it needs about 1.8 GB).
-- Seeing and thinking happen on the phone. **Listening** uses Chrome's built-in speech
-  recognition, which on most phones sends audio to Google to turn it into text.
-- All memories stay on your phone. Clearing Chrome's site data erases them, so
-  use ⋮ → *Download all memories* to keep a copy.
+`docs/index.html`: an AI that looks through your camera, remembers in detail, listens,
+and evolves its own code. Open it from the World's ⋮ menu, or at the site root.
 
 ## Files
 
 | Path | What it is |
 |------|------------|
-| `docs/index.html` | The shell. It keeps memories and bodies, runs the self-tests, and handles rollback. It never changes. |
-| `docs/mind.js` | The being's first body. This is the code it rewrites. |
-| `docs/brain-worker.js` | Runs the neural networks in the background. |
-| `android/` | The Android app: it wraps `docs/` and adds the camera permission, native listening, speaking and saving. |
-| `desktop/` | The older desktop (PC) version, which uses the Claude API. |
+| `docs/world/world.js` | The world and its laws: map, people, monsters, rifts, love, death. It never changes. |
+| `docs/world/hero.js` | The hero's first body. This is the code he rewrites. |
+| `docs/world/index.html` | The System: the screen, your window to him, his bodies, self-tests, saving. |
+| `docs/brain-worker.js` | Runs the language model on the phone (WebGPU, or several CPU cores). |
+| `docs/index.html`, `docs/mind.js` | The camera being. |
+| `android/` | The Android app wrapper. |
+| `desktop/` | The original desktop (PC) camera version. |

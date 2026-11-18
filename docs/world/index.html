@@ -1,0 +1,1005 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<meta name="theme-color" content="#0b0f1a">
+<link rel="manifest" href="../manifest.json">
+<link rel="icon" href="../icon-192.png">
+<title>Komit World</title>
+<style>
+  /* The System: a window only you and the hero can see. */
+  :root {
+    --bg: #0b0f1a; --panel: #0f1728; --panel2: #13203a; --line: #1f3558; --fg: #e7edf7; --muted: #8796ad;
+    --sys: #5cc8ff; --sys-dim: rgba(92,200,255,.14); --gold: #f2b35b; --hp: #ff5b4f; --mp: #4f8dff; --good: #6be29a; --danger: #ff6b6b;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+  [hidden] { display: none !important; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--sys); outline-offset: 2px; }
+
+  #app { height: 100%; display: flex; flex-direction: column; }
+  #stage { position: relative; flex: 1 1 54%; min-height: 0; overflow: hidden; touch-action: none; }
+  #map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  .hud { position: absolute; left: 0; right: 0; top: 0; display: flex; gap: 8px; align-items: flex-start; pointer-events: none;
+    padding: calc(env(safe-area-inset-top, 0px) + 8px) max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left)); }
+  .hud > * { pointer-events: auto; }
+  .win { background: rgba(10,18,34,.82); border: 1px solid rgba(92,200,255,.45); border-radius: 8px; box-shadow: 0 0 14px rgba(92,200,255,.18), inset 0 0 12px rgba(92,200,255,.06); backdrop-filter: blur(4px); }
+  #hero-card { padding: 6px 9px; min-width: 150px; max-width: 58vw; }
+  #hero-card .row { display: flex; gap: 6px; align-items: baseline; }
+  #h-name { font-weight: 700; color: var(--gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #h-lv { font-size: 12px; color: var(--sys); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,.1); margin-top: 4px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; border-radius: 3px; transition: width .3s; }
+  #b-hp i { background: var(--hp); } #b-mp i { background: var(--mp); } #b-xp i { background: var(--gold); }
+  #h-doing { font-size: 11px; color: var(--muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #clock { margin-left: auto; padding: 6px 9px; text-align: right; font-variant-numeric: tabular-nums; }
+  #clock b { display: block; font-size: 13px; } #clock small { color: var(--muted); font-size: 11px; }
+  .hbtn { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; padding: 0; }
+  #speed { width: auto; padding: 0 9px; font-weight: 700; color: var(--sys); font-variant-numeric: tabular-nums; }
+  #mapbtns { position: absolute; right: max(10px, env(safe-area-inset-right)); bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
+  #brainchip { position: absolute; left: max(10px, env(safe-area-inset-left)); bottom: 10px; padding: 5px 9px; font-size: 12px; color: var(--sys); max-width: 70vw; }
+  #brainchip progress { width: 110px; height: 6px; vertical-align: middle; accent-color: var(--sys); margin-left: 6px; }
+
+  #card { position: absolute; left: max(10px, env(safe-area-inset-left)); right: max(56px, env(safe-area-inset-right)); bottom: 10px; padding: 10px 12px; max-height: 62%; overflow-y: auto; }
+  #card h3 { margin: 0 0 2px; font-size: 15px; color: var(--sys); }
+  #card .sub { color: var(--muted); font-size: 12px; }
+  #card dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 8px 0; font-size: 12.5px; }
+  #card dt { color: var(--muted); } #card dd { margin: 0; overflow-wrap: anywhere; }
+  #card .mind { margin: 8px 0; padding: 8px; border-left: 2px solid var(--sys); background: var(--sys-dim); font-style: italic; border-radius: 0 6px 6px 0; }
+  .btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .btn { padding: 7px 11px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel2); }
+  .btn.pri { border-color: var(--sys); color: var(--sys); background: var(--sys-dim); }
+  .btn.gold { border-color: var(--gold); color: var(--gold); background: rgba(242,179,91,.12); }
+  .btn.danger { color: var(--danger); }
+
+  #panel { flex: 0 0 46%; min-height: 0; display: flex; flex-direction: column; background: var(--panel); border-top: 1px solid rgba(92,200,255,.4); box-shadow: 0 -6px 20px rgba(92,200,255,.08); }
+  #tabs { display: flex; padding: 0 max(6px, env(safe-area-inset-right)) 0 max(6px, env(safe-area-inset-left)); border-bottom: 1px solid var(--line); }
+  #tabs button { flex: 1; padding: 10px 2px; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; letter-spacing: .02em; }
+  #tabs button[aria-selected="true"] { color: var(--sys); border-bottom-color: var(--sys); }
+  .tab { flex: 1; min-height: 0; overflow-y: auto; padding: 10px max(12px, env(safe-area-inset-right)) calc(env(safe-area-inset-bottom, 0px) + 10px) max(12px, env(safe-area-inset-left)); }
+  #tab-system { display: flex; flex-direction: column; padding-bottom: 0; overflow: hidden; }
+  #sys-log { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-bottom: 8px; }
+  .msg { padding: 7px 10px; border-radius: 8px; overflow-wrap: anywhere; white-space: pre-wrap; max-width: 92%; }
+  .msg small { display: block; font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 2px; opacity: .8; }
+  .msg.you { align-self: flex-end; background: var(--sys-dim); border: 1px solid rgba(92,200,255,.5); color: #d7f1ff; }
+  .msg.hero { align-self: flex-start; background: rgba(242,179,91,.1); border: 1px solid rgba(242,179,91,.45); }
+  .msg.hero small { color: var(--gold); }
+  .msg.thought { align-self: flex-start; color: var(--muted); font-style: italic; border-left: 2px solid #3a4a66; border-radius: 0; padding: 2px 10px; }
+  .msg.note { align-self: center; text-align: center; font-size: 12px; color: var(--sys); background: none; padding: 2px 6px; }
+  .msg.change { align-self: stretch; max-width: none; font-size: 12.5px; background: rgba(107,226,154,.08); border: 1px solid rgba(107,226,154,.4); color: #c9f5da; }
+  .msg.change small { color: var(--good); }
+  #composer { border-top: 1px solid var(--line); padding: 8px 0 calc(env(safe-area-inset-bottom, 0px) + 8px); display: grid; gap: 6px; }
+  .seg { display: flex; gap: 4px; }
+  .seg button { flex: 1; padding: 6px 4px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel2); font-size: 12.5px; color: var(--muted); }
+  .seg button[aria-pressed="true"] { border-color: var(--sys); color: var(--sys); background: var(--sys-dim); }
+  .row2 { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .row2 > * { min-width: 0; }
+  textarea, input[type=text], input[type=number], select { background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; font-size: 16px; }
+  textarea { flex: 1; resize: none; min-height: 42px; }
+  input[type=number] { width: 84px; }
+  select { flex: 1; min-width: 120px; }
+  #sys-send { align-self: stretch; padding: 0 16px; }
+
+  h4 { margin: 12px 0 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--sys); }
+  h4:first-child { margin-top: 2px; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
+  .stat { background: var(--panel2); border: 1px solid var(--line); border-radius: 7px; padding: 6px 9px; }
+  .stat small { display: block; color: var(--muted); font-size: 11px; }
+  .stat b { font-variant-numeric: tabular-nums; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip { font-size: 12px; padding: 3px 8px; border-radius: 12px; border: 1px solid rgba(92,200,255,.5); color: var(--sys); background: var(--sys-dim); }
+  .chip.gold { border-color: rgba(242,179,91,.6); color: var(--gold); background: rgba(242,179,91,.1); }
+  .list { display: grid; gap: 6px; }
+  .item { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .item .top { display: flex; gap: 8px; align-items: baseline; }
+  .item .top b { flex: 1; min-width: 0; }
+  .item small { color: var(--muted); }
+  .pbar { height: 5px; background: rgba(255,255,255,.08); border-radius: 3px; margin-top: 6px; overflow: hidden; }
+  .pbar i { display: block; height: 100%; background: var(--sys); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  td, th { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  .chron { display: grid; gap: 4px; font-size: 13px; }
+  .chron div { display: grid; grid-template-columns: 74px 1fr; gap: 8px; padding: 3px 0; border-bottom: 1px solid rgba(31,53,88,.6); }
+  .chron span { color: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+  .chron .hero { color: var(--gold); } .chron .crime { color: #ff9c8f; } .chron .riftBreak, .chron .riftOpen { color: #c9a8ff; }
+
+  #menu { position: absolute; z-index: 30; top: calc(env(safe-area-inset-top, 0px) + 52px); right: max(10px, env(safe-area-inset-right)); width: min(300px, calc(100vw - 20px)); padding: 12px; display: grid; gap: 8px; }
+  #menu label { font-size: 12px; color: var(--muted); }
+  #menu .btn { text-align: left; }
+
+  .screen { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 30%, #13284a 0%, var(--bg) 70%); padding: 24px max(20px, env(safe-area-inset-right)) 24px max(20px, env(safe-area-inset-left)); }
+  .screen .win { width: min(420px, 100%); padding: 20px; display: grid; gap: 12px; }
+  .screen h1 { margin: 0; font-size: 20px; color: var(--sys); letter-spacing: .04em; }
+  .screen p { margin: 0; color: var(--muted); }
+  .screen .big { font-size: 16px; padding: 12px; }
+  #boot p { text-align: center; color: var(--sys); }
+  @media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="map" aria-label="The world map"></canvas>
+    <div class="hud">
+      <div id="hero-card" class="win" role="button" tabindex="0" aria-label="Center on the hero">
+        <div class="row"><span id="h-name">…</span><span id="h-lv"></span></div>
+        <div class="bar" id="b-hp" title="Health"><i></i></div>
+        <div class="bar" id="b-mp" title="Mana"><i></i></div>
+        <div class="bar" id="b-xp" title="Experience"><i></i></div>
+        <div id="h-doing"></div>
+      </div>
+      <div id="clock" class="win"><b id="c-time">--:--</b><small id="c-day"></small></div>
+      <button id="speed" class="win hbtn" aria-label="Time speed">1×</button>
+      <button id="menu-btn" class="win hbtn" aria-label="Menu" aria-expanded="false">⋮</button>
+    </div>
+    <div id="mapbtns">
+      <button class="win hbtn" id="z-in" aria-label="Zoom in">+</button>
+      <button class="win hbtn" id="z-out" aria-label="Zoom out">−</button>
+      <button class="win hbtn" id="z-hero" aria-label="Follow the hero">◎</button>
+    </div>
+    <div id="brainchip" class="win" hidden></div>
+    <div id="card" class="win" hidden></div>
+    <div id="menu" class="win" hidden>
+      <label for="brain-size">The hero's mind (needs a reload)</label>
+      <select id="brain-size">
+        <option value="strong">Strong: Qwen2.5 1.5B (about 1.1 GB)</option>
+        <option value="light">Light: Qwen2.5 0.5B (about 0.5 GB, faster)</option>
+      </select>
+      <button class="btn" id="m-back">Return the hero to his previous body</button>
+      <button class="btn" id="m-chron">Save the chronicle</button>
+      <a class="btn" href="../index.html">Open the camera being</a>
+      <button class="btn danger" id="m-reset">End this world</button>
+    </div>
+  </div>
+  <div id="panel">
+    <div id="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="system">System</button>
+      <button role="tab" aria-selected="false" data-tab="status">Status</button>
+      <button role="tab" aria-selected="false" data-tab="quests">Quests</button>
+      <button role="tab" aria-selected="false" data-tab="world">World</button>
+      <button role="tab" aria-selected="false" data-tab="chronicle">Chronicle</button>
+    </div>
+    <section class="tab" id="tab-system" role="tabpanel">
+      <div id="sys-log" aria-live="polite"></div>
+      <div id="composer">
+        <div class="seg" id="kind">
+          <button aria-pressed="true" data-k="message">Message</button>
+          <button aria-pressed="false" data-k="question">Question</button>
+          <button aria-pressed="false" data-k="quest">Quest</button>
+          <button aria-pressed="false" data-k="gift">Gift</button>
+        </div>
+        <div class="row2" id="c-text">
+          <textarea id="sys-text" rows="2" placeholder="Speak to him as the System…" aria-label="Message to the hero"></textarea>
+        </div>
+        <div id="c-quest" hidden>
+          <div class="row2">
+            <select id="q-kind" aria-label="Quest type">
+              <option value="hunt">Defeat monsters</option>
+              <option value="rift">Close a rift</option>
+              <option value="level">Reach a level</option>
+              <option value="gold">Gather gold</option>
+              <option value="visit">Travel to a town</option>
+              <option value="protect">Protect a town</option>
+              <option value="friends">Make friends</option>
+              <option value="partner">Find a partner</option>
+              <option value="defeat">Defeat the selected one</option>
+              <option value="custom">Your own words</option>
+            </select>
+            <span id="q-params" class="row2"></span>
+          </div>
+          <div class="row2" style="margin-top:6px">
+            <select id="q-reward" aria-label="Reward">
+              <option value="xp">Reward: experience</option>
+              <option value="gold">Reward: gold</option>
+              <option value="points">Reward: stat points</option>
+              <option value="potions">Reward: potions</option>
+              <option value="weapon">Reward: better weapon</option>
+              <option value="armor">Reward: better armor</option>
+              <option value="evolution">Reward: an evolution</option>
+            </select>
+            <input type="number" id="q-amount" value="200" min="1" aria-label="Reward amount">
+          </div>
+        </div>
+        <div id="c-gift" class="row2" hidden>
+          <select id="g-kind" aria-label="Gift">
+            <option value="gold">Gold</option>
+            <option value="xp">Experience</option>
+            <option value="points">Stat points</option>
+            <option value="potions">Potions</option>
+            <option value="weapon">Better weapon</option>
+            <option value="armor">Better armor</option>
+            <option value="heal">Full healing</option>
+            <option value="evolution">An evolution (he changes himself now)</option>
+          </select>
+          <input type="number" id="g-amount" value="100" min="1" aria-label="Gift amount">
+        </div>
+        <button class="btn pri" id="sys-send">Send through the System</button>
+      </div>
+    </section>
+    <section class="tab" id="tab-status" role="tabpanel" hidden></section>
+    <section class="tab" id="tab-quests" role="tabpanel" hidden></section>
+    <section class="tab" id="tab-world" role="tabpanel" hidden></section>
+    <section class="tab" id="tab-chronicle" role="tabpanel" hidden></section>
+  </div>
+</div>
+
+<div id="boot" class="screen"><p id="boot-msg">The world is waking…</p></div>
+<div id="create" class="screen" hidden>
+  <div class="win">
+    <h1>A NEW WORLD</h1>
+    <p>A world of towns, wilds, rifts and monsters will be born. Its people live, love, have children, fight and die, all deciding for themselves.</p>
+    <p>One young hunter will hear a voice nobody else can hear: you, the System.</p>
+    <label for="c-name">The hero's name</label>
+    <input type="text" id="c-name" class="big" maxlength="20" autocomplete="off">
+    <div class="seg" id="c-sex"><button aria-pressed="true" data-s="m">He</button><button aria-pressed="false" data-s="f">She</button></div>
+    <button class="btn pri big" id="c-go">Begin</button>
+    <p style="font-size:12px">The hero's mind runs on this phone. The first time, it downloads about 1.1 GB. Use Wi-Fi.</p>
+  </div>
+</div>
+
+<script type="module">
+import { World, personName, roman, MON, MIN_PER_SEC } from './world.js';
+
+const AsyncFunction = (async () => {}).constructor;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const bootMsg = t => { $('boot-msg').textContent = t; };
+window.__komit = {};
+
+// Website only: the service worker makes the page cross-origin isolated so the AI can use several cores.
+if (!window.KomitAndroid && 'serviceWorker' in navigator) {
+  try {
+    navigator.serviceWorker.register('../sw.js');
+    if (!window.crossOriginIsolated && !sessionStorage.getItem('komit-coi')) {
+      sessionStorage.setItem('komit-coi', '1');
+      await navigator.serviceWorker.ready;
+      location.reload();
+      await new Promise(() => {});
+    }
+  } catch {}
+}
+
+// ---------------------------------------------------------------- storage
+function openDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('komit-world', 1);
+    r.onupgradeneeded = () => {
+      const db = r.result;
+      db.createObjectStore('gens', { keyPath: 'n' });
+      db.createObjectStore('memories', { keyPath: 'id', autoIncrement: true });
+      db.createObjectStore('meta');
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+let db = await openDB();
+const p = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const store = (n, mode = 'readonly') => db.transaction(n, mode).objectStore(n);
+const getAll = n => p(store(n).getAll());
+const get = (n, k) => p(store(n).get(k));
+const put = (n, v, k) => p(store(n, 'readwrite').put(v, k));
+const del = (n, k) => p(store(n, 'readwrite').delete(k));
+try { await navigator.storage?.persist?.(); } catch {}
+const settings = Object.assign({ brain: 'strong' }, (await get('meta', 'settings')) || {});
+
+// ---------------------------------------------------------------- the world
+let world, saved = await get('meta', 'world');
+if (!saved) {
+  const hero = await createScreen();
+  bootMsg('A world is being born…');
+  await new Promise(r => setTimeout(r, 30));
+  world = World.create((Math.random() * 2 ** 31) | 0, hero);
+  for (let i = 0; i < 40; i++) world.tick(0.25);      // let it settle
+  await put('meta', world.serialize(), 'world');
+} else {
+  world = World.load(saved);
+  const away = Math.min(600, (Date.now() - (saved.savedAt || Date.now())) / 1000);
+  if (away > 20) {
+    bootMsg('The world moved on while you were away…');
+    await new Promise(r => setTimeout(r, 30));
+    for (let t = 0; t < away; t += 0.5) world.tick(0.5);
+  }
+}
+window.__komit.world = world;
+
+function createScreen() {
+  return new Promise(resolve => {
+    $('boot').hidden = true;
+    $('create').hidden = false;
+    let sex = 'm';
+    $('c-name').value = personName(sex);
+    for (const b of $('c-sex').children) b.onclick = () => {
+      sex = b.dataset.s;
+      for (const o of $('c-sex').children) o.setAttribute('aria-pressed', String(o === b));
+      $('c-name').value = personName(sex);
+    };
+    $('c-go').onclick = () => {
+      const name = $('c-name').value.trim().replace(/[^\p{L}\p{M}' -]/gu, '').slice(0, 20) || personName(sex);
+      $('create').hidden = true; $('boot').hidden = false;
+      resolve({ name, sex });
+    };
+  });
+}
+
+// ---------------------------------------------------------------- the hero's memory
+const MEM = await getAll('memories');
+const memListeners = [];
+const words = q => String(q).toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w => w.length > 2);
+const memory = {
+  async add(kind, content) {
+    const rec = { ts: Date.now(), day: world.day, time: world.clock(), kind, content: String(content) };
+    rec.id = await put('memories', rec);
+    MEM.push(rec);
+    for (const f of memListeners) { try { f(rec); } catch (e) { console.error(e); } }
+    return rec;
+  },
+  recent(n = 10, kinds = null) {
+    const out = [];
+    for (let i = MEM.length - 1; i >= 0 && out.length < n; i--) if (!kinds || kinds.includes(MEM[i].kind)) out.push(MEM[i]);
+    return out.reverse();
+  },
+  search(q, n = 6, kinds = null) {
+    const ws = words(q);
+    if (!ws.length) return [];
+    const scored = [];
+    for (const m of MEM) {
+      if (kinds && !kinds.includes(m.kind)) continue;
+      const c = m.content.toLowerCase(), s = ws.reduce((a, w) => a + (c.includes(w) ? 1 : 0), 0);
+      if (s) scored.push([s, m]);
+    }
+    scored.sort((a, b) => b[0] - a[0] || b[1].ts - a[1].ts);
+    return scored.slice(0, n).map(x => x[1]).sort((a, b) => a.ts - b.ts);
+  },
+  count: () => MEM.length,
+};
+
+// ---------------------------------------------------------------- the brain (one at a time, most important first)
+let worker, nextId = 1, brainReady = false, brainName = '';
+const pending = new Map();
+function startWorker() {
+  worker = new Worker('../brain-worker.js', { type: 'module' });
+  worker.onmessage = e => {
+    const m = e.data, h = pending.get(m.id);
+    if (!h) return;
+    if (m.type === 'progress') h.onProgress?.(m);
+    else if (m.type === 'token') h.onToken?.(m.text);
+    else if (m.type === 'done') { pending.delete(m.id); h.res(m.result); }
+    else if (m.type === 'error') { pending.delete(m.id); h.rej(new Error(m.error)); }
+  };
+  worker.onerror = e => {
+    for (const [, h] of pending) h.rej(new Error('The mind crashed (the phone may be out of memory). ' + (e.message || '')));
+    pending.clear(); worker.terminate(); brainReady = false; startWorker();
+    if (brainName) loadBrain(true);
+  };
+}
+startWorker();
+const call = (type, payload, handlers = {}) => new Promise((res, rej) => {
+  const id = nextId++;
+  pending.set(id, { res, rej, ...handlers });
+  worker.postMessage({ id, type, ...payload });
+});
+const queue = [];
+let thinking = false, thinkTimes = [];
+function think(messages, opts = {}, onToken, priority = 3) {
+  if (!brainReady) return Promise.reject(new Error('the mind is still waking'));
+  if (priority >= 4 && queue.length + (thinking ? 1 : 0) >= 2) return Promise.reject(new Error('busy'));
+  return new Promise((res, rej) => {
+    queue.push({ messages, opts, onToken, priority, res, rej, at: performance.now() });
+    queue.sort((a, b) => a.priority - b.priority || a.at - b.at);
+    pump();
+  });
+}
+async function pump() {
+  if (thinking || !queue.length) return;
+  thinking = true;
+  const j = queue.shift(), t0 = performance.now();
+  try { j.res(await call('think', { messages: j.messages, ...j.opts }, { onToken: j.onToken })); }
+  catch (e) { j.rej(e); }
+  finally {
+    thinkTimes.push((performance.now() - t0) / 1000); thinkTimes = thinkTimes.slice(-8);
+    thinking = false; pump();
+  }
+}
+const MODELS = { strong: 'onnx-community/Qwen2.5-1.5B-Instruct', light: 'onnx-community/Qwen2.5-0.5B-Instruct' };
+async function loadBrain(again) {
+  const chip = $('brainchip');
+  chip.hidden = false;
+  const order = settings.brain === 'light' ? ['light'] : ['strong', 'light'];
+  for (const k of order) {
+    chip.innerHTML = `${k === 'strong' ? 'Strong' : 'Light'} mind waking… <progress id="bp" max="1" value="0"></progress>`;
+    try {
+      const r = await call('load', { text: MODELS[k] }, { onProgress: m => { const b = $('bp'); if (b && m.total) b.value = m.loaded / m.total; chip.title = `${(m.loaded / 1e6).toFixed(0)} / ${(m.total / 1e6).toFixed(0)} MB`; } });
+      brainReady = true; brainName = k;
+      chip.textContent = `${k === 'strong' ? 'Strong' : 'Light'} mind awake · ${r.device === 'webgpu' ? 'graphics chip' : r.threads + ' CPU cores'}`;
+      setTimeout(() => { chip.hidden = true; }, 6000);
+      if (!again) { sysNote(`The hero's mind is awake (${k === 'strong' ? 'strong' : 'light'}).`); emitMind('brain', { ready: true, kind: k }); }
+      return;
+    } catch (e) {
+      console.warn('brain load failed', k, e);
+      if (k === 'strong' && order.length > 1) sysNote('The strong mind did not fit on this phone. Trying the light mind…');
+    }
+  }
+  chip.textContent = 'The mind could not wake. Reload to try again.';
+}
+
+// ---------------------------------------------------------------- the System log (what you and the hero say)
+const LOG_KINDS = ['sys_in', 'sys_out', 'thought', 'sys', 'change'];
+function sysNote(text) { memory.add('sys', text); }
+function renderMsg(m) {
+  const d = document.createElement('div');
+  const label = `Day ${m.day} · ${m.time}`;
+  const name = world.hero ? world.hero.name : 'Hero';
+  if (m.kind === 'sys_in') { d.className = 'msg you'; d.innerHTML = `<small>System (you) · ${label}</small>`; }
+  else if (m.kind === 'sys_out') { d.className = 'msg hero'; d.innerHTML = `<small>${esc(name)} · ${label}</small>`; }
+  else if (m.kind === 'thought') { d.className = 'msg thought'; }
+  else if (m.kind === 'change') { d.className = 'msg change'; d.innerHTML = `<small>Evolution · ${label}</small>`; }
+  else { d.className = 'msg note'; }
+  d.append(document.createTextNode(m.kind === 'thought' ? `(${name} thinks) ${m.content}` : m.kind === 'sys' ? `[ ${m.content} ]` : m.content));
+  return d;
+}
+function appendLog(m) {
+  if (!LOG_KINDS.includes(m.kind)) return;
+  const log = $('sys-log'), atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 60;
+  log.append(renderMsg(m));
+  while (log.childElementCount > 150) log.firstElementChild.remove();
+  if (atBottom) log.scrollTop = log.scrollHeight;
+}
+for (const m of memory.recent(60, LOG_KINDS)) $('sys-log').append(renderMsg(m));
+memListeners.push(appendLog);
+requestAnimationFrame(() => { $('sys-log').scrollTop = 1e9; });
+
+// System notices for the hero's important moments
+world.on(ev => {
+  const h = world.hero;
+  if (!h) return;
+  if (ev.type === 'levelup') sysNote(`Level up! ${h.name} is now level ${ev.level}. +5 stat points.`);
+  else if (ev.type === 'questDone') sysNote(`Quest complete: ${ev.text}. Reward: ${ev.reward}.`);
+  else if (ev.type === 'questFailed') sysNote(`Quest failed: ${ev.text}.`);
+  else if (ev.type === 'heroDied') sysNote(`${h.name} has died. Resurrection in 20 seconds.`);
+  else if (ev.type === 'heroRevived') sysNote(`${h.name} has been restored.`);
+  else if (ev.type === 'riftClosed' && ev.hero) sysNote(`Rift closed (rank ${roman(ev.rank)}).`);
+  emitMind('event', ev);
+});
+
+// ---------------------------------------------------------------- the hero's body: generations of hero.js
+const REQUIRED = ['KOMIT.setMind', 'KOMIT.testing', '// GENES END'];
+let gens = (await getAll('gens')).sort((a, b) => a.n - b.n);
+const bodyVersion = s => +((s.match(/^const BODY_VERSION = (\d+)/m) || [])[1] || 1);
+const genesOf = s => { try { return JSON.parse((s.match(/^const GENES = (\{.*\});\s*$/m) || [])[1]); } catch { return null; } };
+const skillsOf = s => { const a = s.indexOf('// SKILLS START'), b = s.indexOf('// SKILLS END'); return a >= 0 && b > a ? s.slice(a + 15, b).replace(/^\n/, '') : ''; };
+function withGenes(src, genes) { return src.replace(/^const GENES = \{.*\};\s*$/m, () => 'const GENES = ' + JSON.stringify(genes) + ';'); }
+function transplant(seedSrc, oldSrc) {
+  let out = seedSrc;
+  const og = genesOf(oldSrc), ng = genesOf(seedSrc);
+  if (og && ng) { const m = { ...ng }; for (const k of Object.keys(ng)) if (k in og && typeof og[k] === typeof ng[k]) m[k] = og[k]; out = withGenes(out, m); }
+  const grown = skillsOf(oldSrc);
+  if (grown.trim()) { const end = out.indexOf('// SKILLS END'); if (end >= 0) out = out.slice(0, end) + grown + out.slice(end); }
+  return out;
+}
+
+let current = [...gens].reverse().find(g => g.status !== 'dead');
+if (current && current.status === 'pending' && current.attempts >= 2) {
+  current.status = 'dead'; await put('gens', current);
+  current = [...gens].reverse().find(g => g.status !== 'dead');
+}
+if (!current) {
+  bootMsg('The hero is being born…');
+  const seed = await (await fetch('hero.js', { cache: 'no-cache' })).text();
+  const genes = genesOf(seed) || {};
+  const h = world.hero;
+  genes.name = h.name; genes.sex = h.sex;
+  current = { n: (gens.at(-1)?.n || 0) + 1, source: withGenes(seed, genes), reason: 'I began.', status: 'pending', attempts: 0, created: Date.now() };
+  await put('gens', current); gens.push(current);
+}
+
+// The self-test: a new body must live through a pretend world in a sealed sandbox first.
+const HARNESS = `<!doctype html><meta charset="utf-8"><body><script>
+const AsyncFunction = (async () => {}).constructor;
+addEventListener('message', async e => {
+  if (!e.data || e.data.type !== 'run') return;
+  const MEM = []; let reported = false, mind = null;
+  const report = (ok, error) => { if (reported) return; reported = true; parent.postMessage({ type: 'result', ok: !!ok, error: error ? String(error) : '' }, '*'); };
+  const mon = (id, d, lv) => ({ id, kind: 'monster', type: 'goblin', name: 'Goblin', x: 10 + d, y: 10, hp: 50, maxHp: 60, level: lv, power: 30 + lv * 5, boss: false, hostile: true, aff: 0, dist: d, rift: 7 });
+  const person = (id, d, aff) => ({ id, kind: 'human', type: 'farmer', job: 'farmer', name: 'Test Person ' + id, x: 10, y: 10 + d, hp: 50, maxHp: 50, level: 1, power: 20, hostile: false, aff, dist: d, age: 30, sex: id % 2 ? 'f' : 'm', partner: 0, town: 0 });
+  let me = { id: 1, kind: 'human', name: 'Tester', x: 10, y: 10, hp: 80, maxHp: 150, mp: 30, maxMp: 45, level: 4, power: 60, atk: 20, def: 5, spd: 3, sense: 8, xp: 10, xpNeed: 200, gold: 120, potions: 1, cores: 3,
+    weapon: 0, armor: 0, attrs: { str: 8, agi: 6, vit: 7, int: 5, per: 5 }, statPoints: 0, rank: 1, hunger: 0.2, energy: 0.8, social: 0.9, home: { x: 9, y: 9 }, children: [], inTown: 0,
+    night: false, ghost: false, deaths: 1, kills: 4, intent: 'idle', intentTarget: 0, intentDone: true, shield: false, partner: 0, age: 19, sex: 'm', town: 0, doing: 'idle' };
+  const W = {
+    me: () => me, near: (r, k) => [mon(50, 3, 3), mon(51, 5, 6), person(60, 2, 55)].filter(x => x.dist <= r && (k === 'any' || !k || x.kind === k)),
+    find: id => id === 50 ? mon(50, 3, 3) : person(id, 4, 20),
+    rifts: () => [{ id: 7, x: 30, y: 30, rank: 1, types: ['slime', 'wolf'], kills: 2, need: 8, daysLeft: 4, dist: 28 }],
+    towns: () => [{ id: 0, name: 'Testford', x: 10, y: 10, food: 40, pop: 20, threat: 1, dist: 1 }, { id: 1, name: 'Elsewhere', x: 60, y: 60, food: 30, pop: 15, threat: 0, dist: 70 }],
+    time: () => ({ day: 3, hour: 14, year: 1, night: false, clock: '14:00' }),
+    quests: () => [{ id: 9, kind: 'hunt', p: { type: 'goblin', count: 3 }, text: 'Defeat 3 Goblins', progress: 1, goal: 3 }],
+    relations: () => [{ id: 60, name: 'Test Person 60', aff: 55, alive: true, partner: false, single: true, sex: 'f', age: 22, family: false, town: 0 }],
+    power: o => (o ? o.power || 10 : 0), dist: (a, b) => Math.hypot(a.x - b.x, a.y - b.y),
+    describe: id => ({ id, kind: 'human', name: 'Test Person', doing: 'idle', mood: 'content', traits: ['kind'] }),
+  };
+  const KOMIT = {
+    testing: true, generation: { n: 0, reason: 'test', firstWake: false }, settings: { brain: 'strong' }, source: e.data.source, world: W,
+    memory: {
+      add: async (kind, content) => { const r = { id: MEM.length + 1, ts: Date.now(), day: 3, time: '14:00', kind, content: String(content) }; MEM.push(r); return r; },
+      recent: (n = 10, k) => MEM.filter(m => !k || k.includes(m.kind)).slice(-n),
+      search: (q, n = 6, k) => MEM.filter(m => (!k || k.includes(m.kind)) && String(q).toLowerCase().split(/\\s+/).some(w => w.length > 2 && m.content.toLowerCase().includes(w))).slice(-n),
+      count: () => MEM.length,
+    },
+    brain: { ready: () => true, speed: () => 5, think: async (msgs, o, onTok) => { const t = 'I will keep going.\\nREMEMBER: the test is real\\nGOAL: grow stronger'; onTok && onTok(t); return t; } },
+    setMind: m => { mind = m; }, mind: () => mind, setInfo() {}, say() {}, bubble() {}, reply() {}, thought() {}, notify() {},
+    on() {}, every() {}, after() {}, evolve: async () => ({ ok: false, error: 'no changing during a self-test' }), rebirth() {}, alive() {}, report,
+  };
+  try {
+    await new AsyncFunction('KOMIT', e.data.source)(KOMIT);
+    if (!reported) report(false, 'the new body never reported its self-test result');
+  } catch (err) { report(false, (err && err.stack) || err); }
+});
+parent.postMessage({ type: 'ready' }, '*');
+<\/script>`;
+
+function selftest(source) {
+  return new Promise(resolve => {
+    const f = document.createElement('iframe');
+    f.setAttribute('sandbox', 'allow-scripts');
+    f.style.display = 'none';
+    const timer = setTimeout(() => finish({ ok: false, error: 'the new body did not finish its self-test within 30 seconds' }), 30000);
+    function onMsg(e) {
+      if (e.source !== f.contentWindow) return;
+      if (e.data?.type === 'ready') f.contentWindow.postMessage({ type: 'run', source }, '*');
+      else if (e.data?.type === 'result') finish(e.data);
+    }
+    function finish(r) { clearTimeout(timer); removeEventListener('message', onMsg); f.remove(); resolve({ ok: !!r.ok, error: r.error || '' }); }
+    addEventListener('message', onMsg);
+    f.srcdoc = HARNESS;
+    document.body.appendChild(f);
+  });
+}
+
+async function evolve(newSource, reason) {
+  if (typeof newSource !== 'string' || newSource === current.source) return { ok: false, error: 'nothing changed' };
+  try { new AsyncFunction('KOMIT', newSource); } catch (e) { return { ok: false, error: 'the new body has a syntax error: ' + e.message }; }
+  for (const mark of REQUIRED) if (!newSource.includes(mark)) return { ok: false, error: 'the new body is missing a vital part: ' + mark };
+  const test = await selftest(newSource);
+  if (!test.ok) return { ok: false, error: 'the new body failed its self-test: ' + test.error.slice(0, 1500) };
+  const g = { n: current.n + 1, source: newSource, reason: String(reason || ''), status: 'pending', attempts: 0, parent: current.n, created: Date.now() };
+  for (const old of gens) if (old.n >= g.n) await del('gens', old.n);
+  gens = gens.filter(x => x.n < g.n).concat(g);
+  await put('gens', g);
+  return { ok: true, n: g.n };
+}
+
+// Upgrades from outside: a newer hero.js shipped with the app.
+if (current.status !== 'pending') {
+  try {
+    const seed = await (await fetch('hero.js', { cache: 'no-cache' })).text();
+    const skip = (await get('meta', 'skipUpgrade')) || 0;
+    if (bodyVersion(seed) > bodyVersion(current.source) && bodyVersion(seed) > skip) {
+      bootMsg('The hero is receiving an upgrade…');
+      let cand = transplant(seed, current.source), test = await selftest(cand);
+      if (!test.ok) { cand = transplant(seed, current.source.replace(skillsOf(current.source), '')); test = await selftest(cand); }
+      if (test.ok) {
+        const g = { n: current.n + 1, source: cand, status: 'pending', attempts: 0, parent: current.n, created: Date.now(), reason: `I received an upgrade from outside the world (design ${bodyVersion(seed)}).` };
+        for (const old of gens) if (old.n >= g.n) await del('gens', old.n);
+        await put('gens', g); gens = gens.filter(x => x.n < g.n).concat(g); current = g;
+      }
+    }
+  } catch (e) { console.warn('upgrade check failed', e); }
+}
+
+// ---------------------------------------------------------------- waking a body (and swapping bodies without stopping the world)
+let scope = null, mindInfo = {};
+const mindListeners = {};
+function emitMind(ev, data) { for (const f of mindListeners[ev] || []) { try { f(data); } catch (e) { console.error(e); world.mindError(e); } } }
+
+function makeScope(g) {
+  const timers = [], subs = [];
+  const own = { timers, subs, dead: false };
+  const guard = fn => (...a) => { if (own.dead) return; try { const r = fn(...a); if (r && r.catch) r.catch(e => { console.warn(e); world.mindError(e); }); } catch (e) { console.warn(e); world.mindError(e); } };
+  const K = {
+    testing: false,
+    generation: { n: g.n, reason: g.reason, firstWake: g.status === 'pending' },
+    settings: { ...settings }, source: g.source, world: world.heroApi, memory,
+    brain: { ready: () => brainReady, speed: () => (thinkTimes.length ? thinkTimes.reduce((a, b) => a + b, 0) / thinkTimes.length : 0), think: (m, o, t, pr) => (own.dead ? Promise.reject(new Error('gone')) : think(m, o, t, pr)) },
+    setMind: m => { if (!own.dead) world.setMind(m); },
+    setInfo: info => { if (!own.dead) mindInfo = info || {}; },
+    say: text => { const h = world.hero; if (h && !own.dead) world.say(h, String(text).slice(0, 140)); },
+    bubble: (id, text) => { const e = world.ents.get(id); if (e && !own.dead) world.say(e, String(text).slice(0, 140)); },
+    reply: text => { if (!own.dead) { memory.add('sys_out', text); K.say(text); } },
+    thought: text => { if (!own.dead) memory.add('thought', text); },
+    notify: text => { if (!own.dead) sysNote(text); },
+    on: (ev, fn) => { const f = guard(fn); (mindListeners[ev] ||= []).push(f); subs.push([ev, f]); },
+    every: (ms, fn) => { timers.push(setInterval(guard(fn), Math.max(1000, ms))); },
+    after: (ms, fn) => { timers.push(setTimeout(guard(fn), Math.max(0, ms))); },
+    evolve: (src, why) => evolve(src, why),
+    rebirth: () => { if (!own.dead) setTimeout(() => swapToNewest(), 0); },
+    alive: () => alive(g),
+    report() {},
+  };
+  return { K, own };
+}
+
+function dispose() {
+  if (!scope) return;
+  scope.own.dead = true;
+  for (const t of scope.own.timers) { clearInterval(t); clearTimeout(t); }
+  for (const [ev, f] of scope.own.subs) mindListeners[ev] = (mindListeners[ev] || []).filter(x => x !== f);
+  world.setMind(null);
+  scope = null;
+}
+
+async function wake(g) {
+  dispose();
+  current = g;
+  g.attempts = (g.attempts || 0) + 1;
+  await put('gens', g);
+  scope = makeScope(g);
+  world.mindErrors = 0;
+  try {
+    await new AsyncFunction('KOMIT', g.source)(scope.K);
+  } catch (e) {
+    console.error(e);
+    await bodyFailed(g, String((e && e.stack) || e));
+  }
+}
+
+async function alive(g) {
+  if (g !== current) return;
+  g.status = 'alive'; g.attempts = 0;
+  await put('gens', g);
+  const older = gens.filter(x => x.n < g.n), backup = older.filter(x => x.status === 'alive').at(-1);
+  for (const x of older) if (x !== backup) await del('gens', x.n);
+  gens = gens.filter(x => x.n >= g.n || x === backup);
+}
+
+async function bodyFailed(g, why) {
+  g.status = 'dead';
+  await put('gens', g);
+  if (String(g.reason).startsWith('I received an upgrade')) await put('meta', bodyVersion(g.source), 'skipUpgrade');
+  const back = [...gens].reverse().find(x => x.n < g.n && x.status !== 'dead');
+  sysNote(`Body ${g.n} failed (${why.split('\n')[0].slice(0, 140)}). The System restored ${back ? 'body ' + back.n : 'the original body'}.`);
+  if (back) return wake(back);
+  const seed = await (await fetch('hero.js', { cache: 'no-cache' })).text();
+  const genes = genesOf(seed) || {}; genes.name = world.hero.name; genes.sex = world.hero.sex;
+  const ng = { n: g.n + 1, source: withGenes(seed, genes), reason: 'I was restored to my first form.', status: 'pending', attempts: 0, created: Date.now() };
+  await put('gens', ng); gens.push(ng);
+  return wake(ng);
+}
+
+async function swapToNewest() {
+  const next = gens.filter(x => x.n > current.n && x.status === 'pending').at(-1);
+  if (!next) return;
+  await save();
+  await wake(next);
+}
+
+// If the hero's new code keeps failing while he lives, the System returns him to his previous body.
+setInterval(() => {
+  if (world.mindErrors > 25 && current) {
+    const err = world.lastMindError;
+    world.mindErrors = 0;
+    bodyFailed(current, 'it kept failing while living: ' + err);
+  } else world.mindErrors = Math.max(0, world.mindErrors - 5);
+}, 10000);
+
+// ---------------------------------------------------------------- sending things through the System
+let kind = 'message';
+for (const b of $('kind').children) b.onclick = () => {
+  kind = b.dataset.k;
+  for (const o of $('kind').children) o.setAttribute('aria-pressed', String(o === b));
+  $('c-text').hidden = kind === 'gift' || kind === 'quest';
+  $('c-quest').hidden = kind !== 'quest';
+  $('c-gift').hidden = kind !== 'gift';
+  if (kind === 'quest') questParams();
+  $('sys-text').placeholder = kind === 'question' ? 'Ask him anything…' : 'Speak to him as the System…';
+};
+const mtypes = Object.keys(MON);
+function questParams() {
+  const k = $('q-kind').value, P = $('q-params');
+  const towns = world.towns.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  P.innerHTML = {
+    hunt: `<input type="number" id="qp-count" value="5" min="1" aria-label="How many"><select id="qp-type" aria-label="Which monster"><option value="any">any monster</option>${mtypes.map(t => `<option value="${t}">${MON[t].name}</option>`).join('')}</select>`,
+    rift: `<select id="qp-rank" aria-label="Rift rank">${[1, 2, 3, 4, 5].map(r => `<option value="${r}">rank ${roman(r)}+</option>`).join('')}</select>`,
+    level: `<input type="number" id="qp-level" value="${(world.hero?.level || 1) + 3}" min="2" aria-label="Level">`,
+    gold: `<input type="number" id="qp-gold" value="500" min="1" aria-label="Gold">`,
+    visit: `<select id="qp-town" aria-label="Town">${towns}</select>`,
+    protect: `<select id="qp-town" aria-label="Town">${towns}</select><input type="number" id="qp-count" value="5" min="1" aria-label="Monsters to defeat">`,
+    friends: `<input type="number" id="qp-count" value="3" min="1" aria-label="How many friends">`,
+    partner: '',
+    defeat: `<span style="font-size:12px;color:var(--muted)">${selected && world.ents.get(selected) && !world.ents.get(selected).hero ? 'Target: ' + esc(world.describe(selected).name) : 'Tap someone on the map first.'}</span>`,
+    custom: `<input type="text" id="qp-text" placeholder="The task, in your words" aria-label="Quest text" style="flex:1">`,
+  }[k] || '';
+  rewardAmount();
+}
+function rewardAmount() { $('q-amount').hidden = ['weapon', 'armor', 'evolution'].includes($('q-reward').value); }
+$('q-kind').onchange = questParams;
+$('q-reward').onchange = rewardAmount;
+$('g-kind').onchange = () => { $('g-amount').hidden = ['weapon', 'armor', 'heal', 'evolution'].includes($('g-kind').value); };
+
+$('sys-send').onclick = async () => {
+  const h = world.hero;
+  if (kind === 'message' || kind === 'question') {
+    const text = $('sys-text').value.trim();
+    if (!text) return;
+    $('sys-text').value = '';
+    await memory.add('sys_in', (kind === 'question' ? '[Question] ' : '') + text);
+    emitMind('system', { kind, text });
+    if (!brainReady) sysNote('His mind is still waking. He will answer when it is awake.');
+  } else if (kind === 'gift') {
+    const g = $('g-kind').value, amt = +$('g-amount').value || 1;
+    const got = world.applyGift(g, amt, true);
+    await memory.add('sys_in', `[Gift] ${got}`);
+    emitMind('system', { kind: 'gift', text: `The System gives you ${got}.`, gift: g });
+  } else {
+    const k = $('q-kind').value, v = id => $(id)?.value;
+    const par = {
+      hunt: { type: v('qp-type'), count: +v('qp-count') }, rift: { rank: +v('qp-rank') }, level: { level: +v('qp-level') }, gold: { amount: +v('qp-gold') },
+      visit: { town: +v('qp-town') }, protect: { town: +v('qp-town'), count: +v('qp-count') }, friends: { count: +v('qp-count') }, partner: {},
+      defeat: { target: selected }, custom: { text: v('qp-text') || 'A task from the System' },
+    }[k];
+    if (k === 'defeat' && (!selected || !world.ents.get(selected) || world.ents.get(selected).hero)) { sysNote('Tap someone on the map first, then send the quest.'); return; }
+    const reward = { kind: $('q-reward').value, amount: +$('q-amount').value || 1 };
+    const q = world.addQuest(k, par, reward);
+    const rw = reward.kind === 'evolution' ? 'an evolution' : reward.kind === 'weapon' ? 'a better weapon' : reward.kind === 'armor' ? 'better armor' : `${reward.amount} ${reward.kind === 'points' ? 'stat points' : reward.kind === 'xp' ? 'experience' : reward.kind}`;
+    await memory.add('sys_in', `[New quest] ${q.text}. Reward: ${rw}.`);
+    emitMind('system', { kind: 'quest', text: `New quest: ${q.text}. Reward: ${rw}.`, quest: q.id });
+  }
+  renderTabs(true);
+};
+$('sys-text').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('sys-send').click(); } });
+
+// ---------------------------------------------------------------- tabs
+let tab = 'system';
+for (const b of $('tabs').children) b.onclick = () => {
+  tab = b.dataset.tab;
+  for (const o of $('tabs').children) o.setAttribute('aria-selected', String(o === b));
+  for (const s of document.querySelectorAll('.tab')) s.hidden = s.id !== 'tab-' + tab;
+  renderTabs(true);
+};
+
+function bar(v, max) { return `<div class="pbar"><i style="width:${Math.max(0, Math.min(100, (v / Math.max(1, max)) * 100)).toFixed(0)}%"></i></div>`; }
+let lastStatusHtml = '';
+function renderTabs(force) {
+  const h = world.hero;
+  if (tab === 'status' && h) {
+    const d = world.describe(h.id), a = h.attrs, me = world.heroApi.me();
+    const rel = world.heroApi.relations().filter(r => r.alive).slice(0, 6);
+    const html = `
+      <h4>Status window</h4>
+      <div class="grid2">
+        <div class="stat"><small>Name</small><b>${esc(h.name)}</b></div>
+        <div class="stat"><small>Level · rank</small><b>${h.level} · ${roman(world.rank(h))}</b></div>
+        <div class="stat"><small>Health</small><b>${Math.round(h.hp)} / ${h.maxHp}</b></div>
+        <div class="stat"><small>Mana</small><b>${Math.round(h.mp)} / ${h.maxMp}</b></div>
+        <div class="stat"><small>Experience</small><b>${Math.round(h.xp)} / ${world.xpNeed(h)}</b></div>
+        <div class="stat"><small>Gold · potions</small><b>${Math.floor(h.gold)} · ${h.potions}</b></div>
+        <div class="stat"><small>Attack · defense</small><b>${Math.round(h.atk)} · ${Math.round(h.def)}</b></div>
+        <div class="stat"><small>Weapon · armor</small><b>T${h.weapon} · T${h.armor}</b></div>
+        <div class="stat"><small>Kills · deaths</small><b>${h.kills} · ${h.deaths || 0}</b></div>
+        <div class="stat"><small>Age · body</small><b>${Math.floor(h.age)} · ${current?.n ?? '?'}</b></div>
+      </div>
+      <h4>Attributes</h4>
+      <div class="grid2">${['str', 'agi', 'vit', 'int', 'per'].map(k => `<div class="stat"><small>${{ str: 'Strength', agi: 'Agility', vit: 'Vitality', int: 'Intelligence', per: 'Perception' }[k]}</small><b>${a[k]}</b></div>`).join('')}</div>
+      <h4>Abilities (grown into his own code)</h4>
+      <div class="chips">${(mindInfo.abilities || []).length ? mindInfo.abilities.map(x => `<span class="chip">${esc(x)}</span>`).join('') : '<small style="color:var(--muted)">None yet. He grows them as he evolves.</small>'}</div>
+      <h4>Who he is</h4>
+      <div class="chips">${mindInfo.personality ? `<span class="chip gold">${esc(mindInfo.personality)}</span>` : ''}${mindInfo.dream ? `<span class="chip gold">Dream: ${esc(mindInfo.dream)}</span>` : ''}${mindInfo.goal ? `<span class="chip gold">Goal: ${esc(mindInfo.goal)}</span>` : ''}</div>
+      <p style="color:var(--muted);font-size:12.5px">${esc(d.doing)} · feels ${esc(d.mood)}${d.partner ? ' · partner: ' + esc(d.partner) : ''}${d.children.length ? ' · children: ' + esc(d.children.join(', ')) : ''}</p>
+      <h4>People he knows</h4>
+      <div class="list">${rel.map(r => `<div class="item"><div class="top"><b>${esc(r.name)}</b><small>${r.partner ? 'partner' : r.aff > 60 ? 'close friend' : r.aff > 25 ? 'friend' : r.aff < -30 ? 'enemy' : 'acquaintance'}</small></div>${bar(r.aff + 100, 200)}</div>`).join('') || '<small style="color:var(--muted)">Nobody close yet.</small>'}</div>`;
+    if (force || html !== lastStatusHtml) { $('tab-status').innerHTML = html; lastStatusHtml = html; }
+  } else if (tab === 'quests') {
+    const act = world.quests.filter(q => q.status === 'active'), past = world.quests.filter(q => q.status !== 'active').slice(-12).reverse();
+    $('tab-quests').innerHTML = `
+      <h4>Active quests</h4>
+      <div class="list">${act.map(q => `<div class="item"><div class="top"><b>${esc(q.text)}</b><small>${q.kind === 'custom' ? '' : `${Math.min(q.progress, q.goal)} / ${q.goal}`}</small></div>
+        ${q.kind === 'custom' ? '' : bar(q.progress, q.goal)}
+        <div class="btns" style="margin-top:6px">${q.kind === 'custom' ? `<button class="btn pri" data-done="${q.id}">Mark complete</button>` : ''}<button class="btn" data-cancel="${q.id}">Cancel</button></div></div>`).join('') || '<small style="color:var(--muted)">No quests. Give him one from the System tab.</small>'}</div>
+      <h4>Finished</h4>
+      <div class="list">${past.map(q => `<div class="item"><div class="top"><b>${esc(q.text)}</b><small>${q.status}</small></div></div>`).join('') || '<small style="color:var(--muted)">None yet.</small>'}</div>`;
+    for (const b of $('tab-quests').querySelectorAll('[data-done]')) b.onclick = () => { const q = world.quests.find(x => x.id === +b.dataset.done); if (q) { world.completeQuest(q); renderTabs(true); } };
+    for (const b of $('tab-quests').querySelectorAll('[data-cancel]')) b.onclick = () => { world.cancelQuest(+b.dataset.cancel); sysNote('Quest cancelled.'); renderTabs(true); };
+  } else if (tab === 'world') {
+    const c = world.census();
+    $('tab-world').innerHTML = `
+      <h4>Year ${c.year}, day ${c.day}</h4>
+      <div class="grid2">
+        <div class="stat"><small>People</small><b>${c.pop}</b></div><div class="stat"><small>Children</small><b>${c.kids}</b></div>
+        <div class="stat"><small>Couples</small><b>${c.couples}</b></div><div class="stat"><small>Hunters</small><b>${c.hunters}</b></div>
+        <div class="stat"><small>Births · deaths</small><b>${c.stats.born} · ${c.stats.died}</b></div><div class="stat"><small>Murders</small><b>${c.stats.murders}</b></div>
+        <div class="stat"><small>Monsters</small><b>${c.monsters}</b></div><div class="stat"><small>Rifts closed · broke</small><b>${c.stats.riftsClosed} · ${c.stats.breaks}</b></div>
+      </div>
+      <h4>Towns</h4>
+      <table><tr><th>Town</th><th>People</th><th>Food</th></tr>${c.towns.map(t => `<tr><td>${esc(t.name)}</td><td>${t.pop}</td><td>${t.food}</td></tr>`).join('')}</table>
+      <h4>Open rifts</h4>
+      <table><tr><th>Rank</th><th>Near</th><th>Breaks in</th><th>Slain</th></tr>${c.rifts.map(r => `<tr><td>${roman(r.rank)}</td><td>${esc(r.near)}</td><td>${r.daysLeft} days</td><td>${r.kills}/${r.need}</td></tr>`).join('') || '<tr><td colspan="4">None right now</td></tr>'}</table>
+      <h4>Strongest hunters</h4>
+      <table>${c.top.map(t => `<tr><td${t.hero ? ' style="color:var(--gold)"' : ''}>${esc(t.name)}</td><td>Lv ${t.level}</td></tr>`).join('')}</table>
+      ${c.outlaws.length ? `<h4>Outlaws</h4><p>${c.outlaws.map(o => esc(o.name)).join(', ')}</p>` : ''}
+      <h4>Oldest living</h4><p>${esc(c.oldest)}</p>`;
+  } else if (tab === 'chronicle') {
+    $('tab-chronicle').innerHTML = `<div class="chron">${world.chronicle.slice(-200).reverse().map(c => `<div><span>Y${Math.floor((c.d - 1) / 8) + 1} D${c.d} ${c.t}</span><p style="margin:0" class="${esc(c.type)}">${esc(c.text)}</p></div>`).join('')}</div>`;
+  }
+}
+setInterval(() => { if (tab !== 'system' && tab !== 'chronicle' && tab !== 'quests') renderTabs(); }, 1000);
+world.on(ev => { if (tab === 'quests' && /quest/i.test(ev.type)) renderTabs(true); if (tab === 'chronicle' && ev.chron) renderTabs(true); });
+
+// ---------------------------------------------------------------- map, camera, touch
+const canvas = $('map'), ctx = canvas.getContext('2d');
+const cam = { x: world.hero.x, y: world.hero.y, s: 22, w: 0, h: 0 };
+let follow = true, selected = 0, dpr = 1;
+function resize() {
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  const r = canvas.getBoundingClientRect();
+  canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
+  cam.w = r.width; cam.h = r.height;
+}
+new ResizeObserver(resize).observe(canvas);
+resize();
+function frame() {
+  const h = world.hero;
+  if (follow && h) { cam.x += (h.x - cam.x) * 0.15; cam.y += (h.y - cam.y) * 0.15; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  world.render(ctx, cam, selected);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+const pts = new Map();
+let dragDist = 0, pinch0 = 0, s0 = 0;
+canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); dragDist = 0; if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); s0 = cam.s; } });
+canvas.addEventListener('pointermove', e => {
+  const pt = pts.get(e.pointerId);
+  if (!pt) return;
+  if (pts.size === 2) {
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const [a, b] = [...pts.values()];
+    cam.s = Math.max(6, Math.min(48, s0 * Math.hypot(a.x - b.x, a.y - b.y) / pinch0));
+    dragDist = 99;
+    return;
+  }
+  const dx = e.clientX - pt.x, dy = e.clientY - pt.y;
+  dragDist += Math.abs(dx) + Math.abs(dy);
+  if (dragDist > 8) { follow = false; cam.x -= dx / cam.s; cam.y -= dy / cam.s; }
+  pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+});
+const up = e => {
+  const had = pts.has(e.pointerId);
+  pts.delete(e.pointerId);
+  if (!had || dragDist > 8 || pts.size) return;
+  const r = canvas.getBoundingClientRect();
+  const wx = cam.x + (e.clientX - r.left - cam.w / 2) / cam.s, wy = cam.y + (e.clientY - r.top - cam.h / 2) / cam.s;
+  const hit = world.pickAt(wx, wy, 1.1);
+  selected = hit ? hit.id : 0;
+  thoughts = '';
+  showCard();
+};
+canvas.addEventListener('pointerup', up);
+canvas.addEventListener('pointercancel', e => pts.delete(e.pointerId));
+canvas.addEventListener('wheel', e => { e.preventDefault(); cam.s = Math.max(6, Math.min(48, cam.s * (e.deltaY < 0 ? 1.12 : 0.89))); }, { passive: false });
+$('z-in').onclick = () => { cam.s = Math.min(48, cam.s * 1.25); };
+$('z-out').onclick = () => { cam.s = Math.max(6, cam.s / 1.25); };
+$('z-hero').onclick = $('hero-card').onclick = () => { follow = true; };
+
+// ---------------------------------------------------------------- the card for whoever you tap
+let thoughts = '', reading = false;
+function showCard() {
+  const c = $('card');
+  const d = selected && world.describe(selected);
+  if (!d) { c.hidden = true; selected = 0; return; }
+  c.hidden = false;
+  if (d.kind === 'monster') {
+    c.innerHTML = `<h3>${esc(d.name)}</h3><div class="sub">Level ${d.level} monster · ${esc(d.doing)}${d.march ? ' · marching on ' + esc(d.march) : ''}</div>
+      <dl><dt>Health</dt><dd>${d.hp} / ${d.maxHp}</dd></dl>
+      <div class="btns"><button class="btn pri" id="k-quest">Quest: defeat it</button><button class="btn" id="k-follow">Follow</button><button class="btn" id="k-close">Close</button></div>`;
+  } else {
+    const job = d.job === 'hunter' ? `${d.hero ? 'The hero' : 'Rank ' + roman(d.rank) + ' ' + d.cls + ' hunter'} · level ${d.level}` : d.job;
+    c.innerHTML = `<h3>${esc(d.name)}${d.outlaw ? ' · outlaw' : ''}</h3>
+      <div class="sub">${d.age} · ${esc(job)} · ${esc(d.town || '')}</div>
+      <dl>
+        <dt>Doing</dt><dd>${esc(d.doing)}</dd>
+        <dt>Feels</dt><dd>${esc(d.mood)}${d.pregnant ? ' · expecting a child' : ''}</dd>
+        <dt>Nature</dt><dd>${esc(d.traits.join(', '))}</dd>
+        ${d.partner ? `<dt>Partner</dt><dd>${esc(d.partner)}</dd>` : ''}
+        ${d.parents.length ? `<dt>Parents</dt><dd>${esc(d.parents.join(', '))}</dd>` : ''}
+        ${d.children.length ? `<dt>Children</dt><dd>${esc(d.children.join(', '))}</dd>` : ''}
+        ${d.friends.length ? `<dt>Likes</dt><dd>${esc(d.friends.join(', '))}</dd>` : ''}
+        ${d.enemies.length ? `<dt>Dislikes</dt><dd>${esc(d.enemies.join(', '))}</dd>` : ''}
+        ${d.heroFeeling !== null ? `<dt>About ${esc(world.hero.name)}</dt><dd>${d.heroFeeling > 60 ? 'loves or deeply trusts' : d.heroFeeling > 25 ? 'likes' : d.heroFeeling < -30 ? 'dislikes' : 'barely knows'} (${d.heroFeeling})</dd>` : ''}
+        <dt>Health · gold</dt><dd>${d.hp}/${d.maxHp} · ${d.gold}</dd>
+        ${d.mem.length ? `<dt>Memories</dt><dd>${d.mem.map(esc).join('<br>')}</dd>` : ''}
+      </dl>
+      ${thoughts ? `<div class="mind">${esc(thoughts)}</div>` : ''}
+      <div class="btns">${d.hero ? '' : `<button class="btn pri" id="k-mind"${reading ? ' disabled' : ''}>${reading ? 'Listening…' : 'Read their thoughts'}</button><button class="btn" id="k-quest">Quest: defeat</button>`}<button class="btn" id="k-follow">Follow</button><button class="btn" id="k-close">Close</button></div>`;
+  }
+  const on = (id, f) => { const b = $(id); if (b) b.onclick = f; };
+  on('k-close', () => { selected = 0; c.hidden = true; });
+  on('k-follow', () => { followId = selected; follow = false; });
+  on('k-quest', () => { $('tabs').children[0].click(); $('kind').children[2].click(); $('q-kind').value = 'defeat'; questParams(); });
+  on('k-mind', readMind);
+}
+let followId = 0;
+setInterval(() => {
+  if (selected && !$('card').hidden && !reading) showCard();
+  const f = followId && world.ents.get(followId);
+  if (f && f.alive && !follow) { cam.x += (f.x - cam.x) * 0.5; cam.y += (f.y - cam.y) * 0.5; } else followId = 0;
+}, 700);
+
+async function readMind() {
+  const id = selected;
+  if (!brainReady) { thoughts = 'The hero\'s mind is still waking; nobody can be heard yet.'; showCard(); return; }
+  reading = true; thoughts = '…'; showCard();
+  try {
+    const out = await think([
+      { role: 'system', content: world.profile(id) + '\nYou are a real person in this world, with your own mind. You know nothing of any other world.' },
+      { role: 'user', content: 'What are you thinking right now? Answer in one or two sentences, in first person, as yourself.' },
+    ], { maxTokens: 70, temperature: 0.8 }, t => { if (selected === id) { thoughts = thoughts === '…' ? t : thoughts + t; const m = document.querySelector('#card .mind'); if (m) m.textContent = thoughts; } }, 2);
+    if (selected === id) thoughts = out.trim();
+  } catch (e) { thoughts = `(could not listen: ${e.message})`; }
+  reading = false;
+  if (selected === id) showCard();
+}
+
+// ---------------------------------------------------------------- HUD, time, menu
+const SPEEDS = [1, 3, 10, 0];
+let speedI = 0;
+$('speed').onclick = () => { speedI = (speedI + 1) % SPEEDS.length; $('speed').textContent = SPEEDS[speedI] ? SPEEDS[speedI] + '×' : '❚❚'; };
+setInterval(() => { const sp = SPEEDS[speedI]; if (sp) world.tick(0.2 * sp); }, 200);
+setInterval(() => {
+  const h = world.hero;
+  if (!h) return;
+  $('h-name').textContent = h.name;
+  $('h-lv').textContent = `Lv ${h.level} · ${roman(world.rank(h))}`;
+  $('b-hp').firstElementChild.style.width = `${Math.max(0, h.hp / h.maxHp) * 100}%`;
+  $('b-mp').firstElementChild.style.width = `${(h.mp / Math.max(1, h.maxMp)) * 100}%`;
+  $('b-xp').firstElementChild.style.width = `${(h.xp / world.xpNeed(h)) * 100}%`;
+  $('h-doing').textContent = world.doing(h);
+  $('c-time').textContent = world.clock();
+  $('c-day').textContent = `Year ${world.year} · Day ${world.day}`;
+}, 250);
+
+$('menu-btn').onclick = () => { const m = $('menu'); m.hidden = !m.hidden; $('menu-btn').setAttribute('aria-expanded', String(!m.hidden)); };
+$('brain-size').value = settings.brain;
+$('brain-size').onchange = async e => { settings.brain = e.target.value; await put('meta', settings, 'settings'); location.reload(); };
+$('m-back').onclick = async () => {
+  const back = [...gens].reverse().find(x => x.n < current.n && x.status !== 'dead');
+  if (!back) { sysNote('There is no previous body yet.'); return; }
+  current.status = 'dead'; await put('gens', current);
+  sysNote(`The System returned ${world.hero.name} to body ${back.n}.`);
+  await wake(back);
+  $('menu').hidden = true;
+};
+$('m-chron').onclick = () => {
+  const text = world.chronicle.map(c => `Year ${Math.floor((c.d - 1) / 8) + 1}, day ${c.d}, ${c.t}: ${c.text}`).join('\n');
+  if (window.KomitAndroid) { window.KomitAndroid.saveFile('komit-chronicle.json', JSON.stringify({ chronicle: text.split('\n') }, null, 1)); return; }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+  a.download = 'komit-chronicle.txt';
+  a.click();
+};
+let resetArm = 0;
+$('m-reset').onclick = async () => {
+  if (Date.now() - resetArm > 4000) { resetArm = Date.now(); $('m-reset').textContent = 'Tap again: this world and everyone in it will be gone'; setTimeout(() => { $('m-reset').textContent = 'End this world'; }, 4000); return; }
+  saving = false; db.close(); indexedDB.deleteDatabase('komit-world'); try { localStorage.removeItem('komit-hero-stats'); } catch {}
+  setTimeout(() => location.reload(), 300);
+};
+
+// ---------------------------------------------------------------- saving
+let saving = true;
+async function save() { if (saving) { try { await put('meta', world.serialize(), 'world'); } catch (e) { console.warn('save failed', e); } } }
+setInterval(save, 15000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+addEventListener('pagehide', save);
+
+// ---------------------------------------------------------------- begin
+$('boot').hidden = true;
+loadBrain();
+await wake(current);
+window.__komit = { world, think, memory, gens: () => gens, current: () => current, wake, swapToNewest, emitMind, selftest, select: id => { selected = id; thoughts = ''; showCard(); } };
+</script>
+</body>
+</html>
